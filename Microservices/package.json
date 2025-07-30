@@ -1,0 +1,25 @@
+{
+  "name": "microservices-root-checking1",
+  "private": true,
+  "scripts": {
+    "start:auth": "npm --prefix ./auth-service start",
+    "start:call": "npm --prefix ./call-service start",
+    "start:export": "npm --prefix ./export-service start",
+    "start:lead": "npm --prefix ./lead-service start",
+    "start:notification": "npm --prefix ./notification-service start",
+    "start:settings": "npm --prefix ./settings-service start",
+    "start:user": "npm --prefix ./user-service start",
+    "start:all": "concurrently \"npm run start:auth\" \"npm run start:call\" \"npm run start:export\" \"npm run start:lead\" \"npm run start:notification\" \"npm run start:settings\" \"npm run start:user\"",
+    "auth": "npm run start:auth",
+    "call": "npm run start:call",
+    "export": "npm run start:export",
+    "lead": "npm run start:lead",
+    "notification": "npm run start:notification",
+    "settings": "npm run start:settings",
+    "user": "npm run start:user",
+    "all": "npm run start:all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

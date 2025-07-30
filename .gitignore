@@ -9,4 +9,3 @@ package-lock.json
 # Local development scripts
 start-all-services.ps1
 start-all-services.sh
-Microservices/package.json
