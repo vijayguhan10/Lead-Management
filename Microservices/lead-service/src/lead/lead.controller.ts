@@ -13,7 +13,6 @@ import {
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
 import { Lead, LeadStatus } from './schema/lead.schema';
-// import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('leads')
 // @UseGuards(JwtAuthGuard)
