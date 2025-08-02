@@ -143,7 +143,14 @@ export class LeadService {
       throw new BadRequestException('Follow-up date cannot be in the past');
     }
 
+    // Fix: Assign followUpDate to nextFollowUp property
     lead.nextFollowUp = followUpDate;
+    console.log(
+      'Scheduling follow-up for lead:',
+      lead._id,
+      'on',
+      lead.nextFollowUp,
+    );
     return lead.save();
   }
 
@@ -200,65 +207,5 @@ export class LeadService {
       .exec();
   }
 
-  // Search leads by multiple criteria
-  async searchLeads(searchQuery: string): Promise<Lead[]> {
-    // Search in name, email, phone, company, notes
-    return this.leadModel
-      .find({
-        $or: [
-          { name: { $regex: searchQuery, $options: 'i' } },
-          { email: { $regex: searchQuery, $options: 'i' } },
-          { phone: { $regex: searchQuery, $options: 'i' } },
-          { company: { $regex: searchQuery, $options: 'i' } },
-          { notes: { $regex: searchQuery, $options: 'i' } },
-        ],
-      })
-      .exec();
-  }
-
-  // Get leads statistics
-  async getLeadStats(): Promise<any> {
-    const totalLeads = await this.leadModel.countDocuments().exec();
-
-    // Count by status
-    const statusCounts = await this.leadModel
-      .aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-          },
-        },
-      ])
-      .exec();
-
-    // Count by source
-    const sourceCounts = await this.leadModel
-      .aggregate([
-        {
-          $group: {
-            _id: '$source',
-            count: { $sum: 1 },
-          },
-        },
-      ])
-      .exec();
-
-    const statusStats = {};
-    statusCounts.forEach((item) => {
-      statusStats[item._id] = item.count;
-    });
-
-    // Format source counts
-    const sourceStats = {};
-    sourceCounts.forEach((item) => {
-      sourceStats[item._id] = item.count;
-    });
-
-    return {
-      totalLeads,
-      byStatus: statusStats,
-      bySource: sourceStats,
-    };
-  }
+ 
 }

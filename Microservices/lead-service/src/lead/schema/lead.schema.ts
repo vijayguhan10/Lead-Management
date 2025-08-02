@@ -17,17 +17,7 @@ export enum LeadStatus {
   Dropped = 'Dropped',
 }
 
-@Schema()
-class UtmParams {
-  @Prop()
-  source?: string;
 
-  @Prop()
-  medium?: string;
-
-  @Prop()
-  campaign?: string;
-}
 
 @Schema({ timestamps: true })
 export class Lead {
@@ -98,9 +88,6 @@ export class Lead {
 
   @Prop([String])
   attachments?: string[];
-
-  @Prop({ type: UtmParams })
-  utmParams?: UtmParams;
 
   @Prop()
   conversionScore?: number;
