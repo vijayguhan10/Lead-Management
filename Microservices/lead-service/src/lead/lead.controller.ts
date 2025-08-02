@@ -13,7 +13,6 @@ import {
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
 import { Lead, LeadStatus } from './schema/lead.schema';
-// import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('leads')
 // @UseGuards(JwtAuthGuard)
@@ -74,7 +73,7 @@ export class LeadController {
   @Patch(':id/follow-up')
   scheduleFollowUp(
     @Param('id') id: string,
-    @Body('followUpDate') followUpDate: Date,
+    @Body('followUpDate') followUpDate: Date, // Change this variable name
   ): Promise<Lead> {
     return this.leadService.scheduleFollowUp(id, followUpDate);
   }
@@ -106,24 +105,5 @@ export class LeadController {
   getLeadsByStatus(@Param('status') status: LeadStatus): Promise<Lead[]> {
     return this.leadService.getLeadsByStatus(status);
   }
-
-  @Get('follow-ups/today')
-  getFollowUpsForToday(): Promise<Lead[]> {
-    return this.leadService.getFollowUpsForToday();
-  }
-
-  @Get('search/:query')
-  searchLeads(@Param('query') query: string): Promise<Lead[]> {
-    return this.leadService.searchLeads(query);
-  }
-
-  @Get('stats')
-  getLeadStats(): Promise<any> {
-    return this.leadService.getLeadStats();
-  }
-
-  @Get('phone/:phone')
-  findByPhone(@Param('phone') phone: string): Promise<Lead[]> {
-    return this.leadService.findByPhone(phone);
-  }
+ 
 }

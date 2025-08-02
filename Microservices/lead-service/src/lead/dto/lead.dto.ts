@@ -26,19 +26,7 @@ export enum LeadStatus {
   Dropped = 'Dropped',
 }
 
-class UtmParamsDto {
-  @IsOptional()
-  @IsString()
-  source?: string;
 
-  @IsOptional()
-  @IsString()
-  medium?: string;
-
-  @IsOptional()
-  @IsString()
-  campaign?: string;
-}
 
 export class LeadDto {
   @IsString()
@@ -123,10 +111,6 @@ export class LeadDto {
   @IsString({ each: true })
   attachments?: string[];
 
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UtmParamsDto)
-  utmParams?: UtmParamsDto;
 
   @IsOptional()
   @IsNumber()
