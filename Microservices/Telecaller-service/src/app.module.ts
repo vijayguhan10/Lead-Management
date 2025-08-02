@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { MongooseModule } from '@nestjs/mongoose';
+import { TelecallerModule } from './telecaller/telecaller.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    MongooseModule.forRoot(
+      'mongodb+srv://vijayguhan10:TN30e4230!@cluster0.swhz00z.mongodb.net/telecaller-service',
+     
+    ),
+    TelecallerModule,
+  ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
