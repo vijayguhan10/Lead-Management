@@ -13,8 +13,8 @@ export class TelecallerClient {
     this.client = ClientProxyFactory.create({
       transport: Transport.TCP,
       options: {
-        host: 'localhost', 
-        port: 8001, 
+        host: 'localhost',
+        port: 8001,
       },
     });
   }
@@ -24,7 +24,7 @@ export class TelecallerClient {
       const result = await this.client
         .send({ cmd: 'validate_telecaller' }, telecallerId)
         .toPromise();
-        console.log('Telecaller validation result:', result);
+      console.log('Telecaller validation result:', result);
       return result;
     } catch (error) {
       console.error('Error validating telecaller:', error.message);
@@ -50,6 +50,17 @@ export class TelecallerClient {
         .toPromise();
     } catch (error) {
       console.error('Error getting telecaller leads:', error.message);
+      return { success: false, error: 'Telecaller service unavailable' };
+    }
+  }
+
+  async smartAssignLeads(leadIds: string[]) {
+    try {
+      return await this.client
+        .send({ cmd: 'smart_assign_leads' }, leadIds)
+        .toPromise();
+    } catch (error) {
+      console.error('Error in smart lead assignment:', error.message);
       return { success: false, error: 'Telecaller service unavailable' };
     }
   }

@@ -27,8 +27,8 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User account is not active');
     }
 
-    if (result.role !== 'telecaller') {
-      throw new ForbiddenException('Only telecallers can access this resource');
+    if (result.role !== 'admin') {
+      throw new ForbiddenException('Only admin can access this resource');
     }
 
     return true;

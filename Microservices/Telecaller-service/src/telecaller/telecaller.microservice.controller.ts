@@ -70,4 +70,17 @@ export class TelecallerMicroserviceController {
       };
     }
   }
+
+  @MessagePattern({ cmd: 'smart_assign_leads' })
+  async smartAssignLeads(@Payload() leadIds: string[]) {
+    try {
+      const result = await this.telecallerService.smartAssignLeads(leadIds);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
