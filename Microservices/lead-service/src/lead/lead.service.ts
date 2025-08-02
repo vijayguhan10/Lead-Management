@@ -8,11 +8,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Lead, LeadDocument, LeadStatus } from './schema/lead.schema';
 import { LeadDto } from './dto/lead.dto';
+import { TelecallerClient } from '../telecaller/telecaller.client';
 
 @Injectable()
 export class LeadService {
   constructor(
     @InjectModel(Lead.name) private readonly leadModel: Model<LeadDocument>,
+    private readonly telecallerClient: TelecallerClient,
   ) {}
 
   // Create a new lead
@@ -111,12 +113,35 @@ export class LeadService {
 
   // Assign lead to telecaller
   async assignLead(id: string, telecallerId: string): Promise<Lead> {
+    // First, validate that the lead exists
     const lead = await this.leadModel.findById(id).exec();
     if (!lead) {
       throw new NotFoundException(`Lead with ID ${id} not found`);
     }
 
+    // Then, validate that the telecaller exists via the microservice
+    const telecallerResult =
+      await this.telecallerClient.validateTelecaller(telecallerId);
+    if (!telecallerResult.isValid) {
+      throw new NotFoundException(
+        `Telecaller with ID ${telecallerId} not found`,
+      );
+    }
+
+    // Assign the lead in both services
     lead.assignedTo = telecallerId;
+
+    // Update the telecaller's assigned leads via the microservice
+    const assignResult = await this.telecallerClient.assignLead(
+      id,
+      telecallerId,
+    );
+    if (!assignResult.success) {
+      throw new ConflictException(
+        `Failed to assign lead to telecaller: ${assignResult.error}`,
+      );
+    }
+
     return lead.save();
   }
 
@@ -206,6 +231,4 @@ export class LeadService {
       })
       .exec();
   }
-
- 
 }
