@@ -91,4 +91,33 @@ export class AuthService {
     user.isActive = !user.isActive;
     return user.save();
   }
+
+  async verifyToken(token: string): Promise<any> {
+    try {
+      const payload = this.jwtService.verify(token);
+
+      const user = await this.authModel
+        .findOne({ email: payload.email })
+        .exec();
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        isActive: user.isActive,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  async findById(id: string): Promise<Auth | null> {
+    return this.authModel.findById(id).exec();
+  }
 }
