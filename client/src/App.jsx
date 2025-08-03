@@ -1,29 +1,21 @@
-import "./App.css";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./components/auth/Login";
-import Signup from "./components/auth/Signup";
+import "./index.css";
+import SideBar from "./components/layout/Sidebar";
+import Header from "./components/layout/Header";
+import InitialRouter from "./Router/InitialRouter";
+import { useLocation } from "react-router-dom";
 
 function App() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+
   return (
-    <BrowserRouter>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={true}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <div className="font-poppins">
+      {!isLoginPage && <SideBar />}
+      {!isLoginPage && <Header />}
+      <div className="ml-64">
+        <InitialRouter />
+      </div>
+    </div>
   );
 }
 
