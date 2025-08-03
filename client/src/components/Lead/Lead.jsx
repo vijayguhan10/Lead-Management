@@ -9,7 +9,7 @@ import {
   faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 import sampleData from "./sampleData";
-import "./Lead.css";
+
 import LeadDetailsPopup from "./LeadDetailsPopup";
 
 const Lead = () => {
