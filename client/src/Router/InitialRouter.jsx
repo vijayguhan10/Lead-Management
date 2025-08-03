@@ -20,7 +20,7 @@ const InitialRouter = () => {
         <Route path="/call-logs" element={<CallLogs />} />
         <Route path="/telecaller" element={<TelecallerOverviewPanel />} />
         <Route path="/viewtelecaller" element={<IndividualTelecaller />} />
-
+        <Route path="/leads" element={<Lead />} />
       </Routes>
     </div>
   );
