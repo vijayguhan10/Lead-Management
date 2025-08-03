@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FaArrowLeft,
   FaPhone,
@@ -13,6 +13,7 @@ import {
   FaSearch,
   FaCalendarAlt,
   FaTrophy,
+  FaRobot,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -121,16 +122,46 @@ const todaysAssignedLeads = assignedLeads.filter(
   (lead) => lead.date === todayDate
 );
 
-export default function RecordingsDashboard() {
+export default function IndividualTelecaller() {
+  const [globalTab, setGlobalTab] = useState("Overall");
+  const [statsTab, setStatsTab] = useState("Monthly");
+  const [analyticsTab, setAnalyticsTab] = useState("Monthly");
+  const [conversionTab, setConversionTab] = useState("Monthly");
+
   return (
-    <div className="bg-gradient-to-br  max-h-screen max-w-screen overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0 px-6 pt-4 pb-2">
+    <div className="bg-gradient-to-br max-h-screen max-w-screen overflow-hidden flex flex-col">
+      {/* Global Tab Selector */}
+      <div className="flex items-center justify-start px-6 pt-4">
+        <div className="flex gap-2">
+          {["Monthly", "Yearly", "Overall"].map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-1 rounded-full font-semibold text-sm border ${
+                globalTab === tab
+                  ? "bg-[#7C3AED] text-white border-[#7C3AED]"
+                  : "bg-white text-[#7C3AED] border-[#e5e7eb]"
+              } transition`}
+              onClick={() => setGlobalTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+        <div className="flex items-center justify-between flex-shrink-0 px-6 pt-2 pb-2">
         <span className="font-semibold text-gray-700 text-lg flex items-center gap-2">
           <FaArrowLeft className="mr-2" />
           Back to Telecallers
         </span>
         <div className="flex gap-2">
+          <button
+            className="bg-gradient-to-r from-[#d2ffeb] via-[#4F46E5] to-[#ff8ae0] text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm font-bold border-2 border-[#7C3AED] 
+    hover:from-[#16A34A] hover:via-[#4F46E5] hover:to-[#7C3AED] 
+    hover:shadow-[0_0_16px_4px_rgba(124,60,237,0.3)] transition-all duration-300"
+          >
+            <FaRobot className="animate-bounce" />
+            Ai Report
+          </button>
           <button className="bg-[#7C3AED] text-white px-3 py-1 rounded shadow flex items-center gap-2 text-xs font-semibold hover:bg-[#5b2edd] transition">
             <FaDownload /> Export Logs
           </button>
@@ -139,10 +170,14 @@ export default function RecordingsDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Header */}
+    
+
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 gap-4 px-4 pb-4">
         {/* Left Section */}
-        <div className="flex-[1]  min-h-0 flex flex-col gap-2 overflow-hidden">
+        <div className="flex-[1] min-h-0 flex flex-col gap-2 overflow-hidden">
           {/* Telecaller Info */}
           <div className="bg-white rounded-xl shadow p-4 flex items-center gap-6 flex-shrink-0">
             <FaUserCircle className="text-5xl text-gray-400" />
@@ -174,7 +209,27 @@ export default function RecordingsDashboard() {
               </button>
             </div>
           </div>
-          {/* Stats */}
+          {/* Stats Grid with Tab */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-gray-800 text-base">
+              Telecaller Stats
+            </span>
+            <div className="flex gap-2">
+              {["Monthly", "Yearly", "Overall"].map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                    statsTab === tab
+                      ? "bg-[#16A34A] text-white border-[#16A34A]"
+                      : "bg-white text-[#16A34A] border-[#e5e7eb]"
+                  } transition`}
+                  onClick={() => setStatsTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 flex-shrink-0">
             <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
               <span className="text-xs text-gray-500 mb-1">
@@ -229,15 +284,27 @@ export default function RecordingsDashboard() {
               </span>
             </div>
           </div>
-          {/* Analytics Chart */}
-          <div className="bg-white rounded-xl shadow p-2 flex-shrink-0">
+          {/* Call Conversion Analytics with Tab */}
+          <div className="bg-white rounded-xl shadow p-2 flex-shrink-0 mt-2">
             <div className="flex items-center justify-between mb-1">
               <span className="font-semibold text-gray-800 text-base">
                 Call Conversion Analytics
               </span>
-              <button className="text-xs text-[#7C3AED] flex items-center gap-1">
-                <FaCalendarAlt /> This Month
-              </button>
+              <div className="flex gap-2">
+                {["Monthly", "Yearly", "Overall"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      analyticsTab === tab
+                        ? "bg-[#4F46E5] text-white border-[#4F46E5]"
+                        : "bg-white text-[#4F46E5] border-[#e5e7eb]"
+                    } transition`}
+                    onClick={() => setAnalyticsTab(tab)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={80}>
               <BarChart data={chartData}>
@@ -248,7 +315,6 @@ export default function RecordingsDashboard() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          {/* Today's Assigned Leads */}
 
           {/* Call Logs Table */}
           <div className="bg-white rounded-xl shadow p-2 flex-1 min-h-0 flex flex-col">
@@ -399,13 +465,25 @@ export default function RecordingsDashboard() {
               </div>
             </div>
           </div>
-          {/* Conversion Stats */}
+          {/* Conversion Stats with Tab */}
           <div className="bg-[#f6f8fb] rounded-xl p-2 shadow">
             <div className="font-semibold text-gray-700 mb-1 flex items-center justify-between">
               <span>Conversion Stats</span>
-              <button className="text-xs text-[#7C3AED] font-semibold">
-                Leaderboard
-              </button>
+              <div className="flex gap-2">
+                {["Monthly", "Yearly", "Overall"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      conversionTab === tab
+                        ? "bg-[#FFD700] text-[#7C3AED] border-[#FFD700]"
+                        : "bg-white text-[#7C3AED] border-[#e5e7eb]"
+                    } transition`}
+                    onClick={() => setConversionTab(tab)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {conversionStats.map((stat, idx) => (
