@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faSearch,
-  faFilter,
-  faSort,
-  faEye,
-  faArrowLeft,
-  faArrowRight,
-} from "@fortawesome/free-solid-svg-icons";
+  FaSearch,
+  FaFilter,
+  FaSort,
+  FaEye,
+  FaArrowLeft,
+  FaArrowRight,
+} from "react-icons/fa";
 import sampleData from "./sampleData";
-import "./Lead.css";
+
 import LeadDetailsPopup from "./LeadDetailsPopup";
 
 const Lead = () => {
@@ -48,15 +47,15 @@ const Lead = () => {
                 className="w-full p-3 pl-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <span className="absolute left-3 top-3 text-gray-400">
-                <FontAwesomeIcon icon={faSearch} />
+                <FaSearch />
               </span>
             </div>
             <div className="flex gap-4">
               <button className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 flex items-center gap-2">
-                <FontAwesomeIcon icon={faFilter} /> Filter
+                <FaFilter /> Filter
               </button>
               <button className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 flex items-center gap-2">
-                <FontAwesomeIcon icon={faSort} /> Sort
+                <FaSort /> Sort
               </button>
             </div>
           </div>
@@ -98,8 +97,7 @@ const Lead = () => {
                       {lead.assignedTelecallers}
                     </td>
                     <td className="py-3 px-4">
-                      <FontAwesomeIcon
-                        icon={faEye}
+                      <FaEye
                         className="text-blue-500 hover:text-blue-700 cursor-pointer"
                         onClick={() => setSelectedLead(lead)}
                       />
@@ -115,7 +113,7 @@ const Lead = () => {
               disabled={currentPage === 1}
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-400 disabled:opacity-50 flex items-center gap-2"
             >
-              <FontAwesomeIcon icon={faArrowLeft} /> Previous
+              <FaArrowLeft /> Previous
             </button>
             <div className="flex gap-2">
               {Array.from(
@@ -142,7 +140,7 @@ const Lead = () => {
               }
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-400 disabled:opacity-50 flex items-center gap-2"
             >
-              Next <FontAwesomeIcon icon={faArrowRight} />
+              Next <FaArrowRight />
             </button>
           </div>
         </>
