@@ -5,6 +5,7 @@ import { TelecallerMicroserviceController } from './telecaller.microservice.cont
 import { TelecallerService } from './telecaller.service';
 import { Telecaller, TelecallerSchema } from './schema/telecaller.schema';
 import { AuthClient } from '../auth/auth.client';
+import { AdminAccessRoleGuard, TelecallerRoleGuard } from 'src/auth/Role.guard';
 
 @Module({
   imports: [
@@ -13,6 +14,12 @@ import { AuthClient } from '../auth/auth.client';
     ]),
   ],
   controllers: [TelecallerController, TelecallerMicroserviceController],
-  providers: [TelecallerService, AuthClient],
+  providers: [
+    TelecallerService,
+    AuthClient,
+    AdminAccessRoleGuard,
+    TelecallerRoleGuard,
+
+  ],
 })
 export class TelecallerModule {}

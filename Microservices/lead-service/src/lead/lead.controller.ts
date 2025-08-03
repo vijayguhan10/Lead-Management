@@ -103,4 +103,12 @@ export class LeadController {
   smartBulkAssign(@Body() data: { leadIds: string[] }): Promise<any> {
     return this.leadService.smartBulkAssign(data.leadIds);
   }
+
+  @Patch(':id/notes')
+  updateNotes(
+    @Param('id') id: string,
+    @Body('notes') notes: string,
+  ): Promise<Lead> {
+    return this.leadService.updateNotes(id, notes);
+  }
 }

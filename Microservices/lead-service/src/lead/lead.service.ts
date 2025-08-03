@@ -33,7 +33,6 @@ export class LeadService {
     return createdLead.save();
   }
 
-  // Get all leads with optional filtering
   async findAll(query: any = {}): Promise<Lead[]> {
     const { status, priority, assignedTo, source, createdAt, tags } = query;
     const filter: any = {};
@@ -44,7 +43,6 @@ export class LeadService {
     if (source) filter.source = source;
     if (tags) filter.tags = { $in: Array.isArray(tags) ? tags : [tags] };
 
-    // Date range filtering
     if (createdAt) {
       const { startDate, endDate } = createdAt;
       if (startDate && endDate) {
@@ -267,5 +265,15 @@ export class LeadService {
         },
       })
       .exec();
+  }
+
+  async updateNotes(id: string, notes: string): Promise<Lead> {
+    const updatedLead = await this.leadModel
+      .findByIdAndUpdate(id, { notes }, { new: true })
+      .exec();
+    if (!updatedLead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+    return updatedLead;
   }
 }

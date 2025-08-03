@@ -10,6 +10,7 @@ export class TelecallerClient {
   private client: ClientProxy;
 
   constructor() {
+    console.log("transport layer : ",Transport.TCP);
     this.client = ClientProxyFactory.create({
       transport: Transport.TCP,
       options: {
