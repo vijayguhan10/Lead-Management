@@ -3,8 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Auth from "../components/Auth/Auth";
 import Dashboard from "../components/Admin/Dashboard";
 
-import Lead from "../components/lead/Lead"; // Import the Lead component
-
+import Lead from "../components/Lead/Lead";
 
 import IndividualTelecaller from "../components/Telecaller/IndividualTelecaller";
 import TelecallerOverviewPanel from "../components/Telecaller/TelecallerOverviewPanel";
@@ -16,7 +15,7 @@ const InitialRouter = () => {
       <Routes>
         <Route path="/login" element={<Auth />} />
 
-       
+        <Route path="/leads" element={<Lead />} />
           <Route path="/admin-dashboard" element={<Dashboard />} />
         <Route path="/call-logs" element={<CallLogs />} />
         <Route path="/telecaller" element={<TelecallerOverviewPanel />} />
