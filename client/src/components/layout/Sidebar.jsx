@@ -1,34 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Home,
-  User,
-  Package,
-  Calendar,
-  Bell,
-  GitPullRequestCreateIcon,
-  LogOut,
-  FileText,
-  Layers,
-  ClipboardList,
-  FolderOpen,
   Users,
-  DollarSign,
-  Clock,
+  User,
+  Mic,
+  Settings,
+  FolderOpen,
+  FileText,
+  BarChart2,
+  LogOut,
 } from "lucide-react";
+import { FaRobot } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const menuItems = [
-  { name: "Job Overview", icon: Home, path: "/dashboard" },
-  { name: "Add New", icon: User, path: "/editshop" },
-  { name: "Measurements", icon: Package, path: "/inventory" },
-  { name: "Estimating", icon: Calendar, path: "/orders" },
-  { name: "Forms / Proposals", icon: FileText, path: "/forms" },
-  { name: "Materials", icon: Layers, path: "/materials" },
-  { name: "Work Orders", icon: ClipboardList, path: "/workorders" },
-  { name: "Photos & Documents", icon: FolderOpen, path: "/photos" },
-  { name: "Resource Viewer", icon: Users, path: "/resources" },
-  { name: "Financials", icon: DollarSign, path: "/financials" },
-  { name: "Clockin / Clockout Logs", icon: Clock, path: "/logs" },
+  { name: "Leads", icon: Users, path: "/leads" },
+  { name: "Telecaller", icon: User, path: "/telecaller" },
+  { name: "Recordings", icon: Mic, path: "/call-logs" },
+  { name: "Settings", icon: Settings, path: "/settings" },
+  { name: "Files/Documents", icon: FolderOpen, path: "/files" },
+  { name: "Summary", icon: FileText, path: "/summary" },
+  { name: "Ai Visualizer", icon: FaRobot, path: "/ai-visualizer" },
 ];
 
 const SideBar = () => {
@@ -75,11 +66,9 @@ const SideBar = () => {
           {/* Job Info */}
           <div className="mb-8">
             <div className="mb-2 flex items-center gap-2 bg-gradient-to-r from-[#e0e7ff] via-[#f0f7fa] to-[#e0ffe0] rounded-lg px-3 py-2">
-            
               <span className="font-bold text-base text-blue-700">
                 Vijay Guhan
               </span>
-            
             </div>
             <div className="text-xs text-gray-700 leading-tight mt-2 bg-gradient-to-r from-[#e0e7ff] via-[#f0f7fa] to-[#e0ffe0] rounded-lg px-3 py-2">
               CHENNAI
