@@ -130,7 +130,7 @@ const ongoingLeads = [
 
 const Dashboard = () => {
   return (
-    <div className="p-2 md:p-4 font-poppins bg-gradient-to-br min-h-screen">
+    <div className="p-2 overflow-hidden  md:p-4 font-poppins bg-gradient-to-br max-h-screen">
       {/* Top Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
         {stats.map((stat, idx) => (
@@ -182,7 +182,6 @@ const Dashboard = () => {
                   <stop offset="5%" stopColor="#b9fabd" stopOpacity={0.8} />
                   <stop offset="95%" stopColor="#b9fabd" stopOpacity={0} />
                 </linearGradient>
-              
               </defs>
               <XAxis dataKey="name" />
               <YAxis />
@@ -207,7 +206,6 @@ const Dashboard = () => {
                 name="Converted Leads"
                 dot={{ r: 4 }}
               />
-              
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -266,25 +264,47 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
-              <thead>
-                <tr className="text-gray-500">
-                  <th className="py-1 px-1 text-left">Lead Type</th>
-                  <th className="py-1 px-1 text-left">Lead ID</th>
-                  <th className="py-1 px-1 text-left">Telecaller</th>
-                  <th className="py-1 px-1 text-left">Date</th>
-                  <th className="py-1 px-1 text-left">Status</th>
+            <table className="min-w-full text-xs rounded-lg overflow-hidden shadow">
+              <thead className="bg-[#ede9fe] sticky top-0 z-10">
+                <tr className="text-[#7C3AED]">
+                  <th className="py-2 px-3 text-left font-semibold">
+                    Lead Type
+                  </th>
+                  <th className="py-2 px-3 text-left font-semibold">Lead ID</th>
+                  <th className="py-2 px-3 text-left font-semibold">
+                    Telecaller
+                  </th>
+                  <th className="py-2 px-3 text-left font-semibold">Date</th>
+                  <th className="py-2 px-3 text-left font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {assignedLeads.map((lead, idx) => (
-                  <tr key={idx} className="border-b last:border-none">
-                    <td className="py-1 px-1">{lead.type}</td>
-                    <td className="py-1 px-1">{lead.id}</td>
-                    <td className="py-1 px-1">{lead.telecaller}</td>
-                    <td className="py-1 px-1">{lead.date}</td>
-                    <td className="py-1 px-1">
-                      <span className="bg-[#e9e6fd] text-[#7C3AED] px-2 py-[2px] rounded font-semibold text-[10px]">
+                  <tr
+                    key={idx}
+                    className={`transition ${
+                      idx % 2 === 0 ? "bg-white" : "bg-[#f6f8fb]"
+                    } hover:bg-[#e0e7ff]`}
+                  >
+                    <td className="py-2 px-3">{lead.type}</td>
+                    <td className="py-2 px-3 font-mono">{lead.id}</td>
+                    <td className="py-2 px-3">{lead.telecaller}</td>
+                    <td className="py-2 px-3">{lead.date}</td>
+                    <td className="py-2 px-3">
+                      <span
+                        className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-[10px] shadow
+                        ${
+                          lead.status === "Assigned"
+                            ? "bg-[#e9e6fd] text-[#7C3AED]"
+                            : "bg-[#dcfce7] text-[#16A34A]"
+                        }
+                      `}
+                      >
+                        {lead.status === "Assigned" ? (
+                          <FaHourglassHalf />
+                        ) : (
+                          <FaCheckCircle />
+                        )}
                         {lead.status}
                       </span>
                     </td>
@@ -305,25 +325,35 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
-              <thead>
-                <tr className="text-gray-500">
-                  <th className="py-1 px-1 text-left">Lead Type</th>
-                  <th className="py-1 px-1 text-left">Lead ID</th>
-                  <th className="py-1 px-1 text-left">Telecaller</th>
-                  <th className="py-1 px-1 text-left">Date</th>
-                  <th className="py-1 px-1 text-left">Status</th>
+            <table className="min-w-full text-xs rounded-lg overflow-hidden shadow">
+              <thead className="bg-[#fff4e5] sticky top-0 z-10">
+                <tr className="text-[#b45309]">
+                  <th className="py-2 px-3 text-left font-semibold">
+                    Lead Type
+                  </th>
+                  <th className="py-2 px-3 text-left font-semibold">Lead ID</th>
+                  <th className="py-2 px-3 text-left font-semibold">
+                    Telecaller
+                  </th>
+                  <th className="py-2 px-3 text-left font-semibold">Date</th>
+                  <th className="py-2 px-3 text-left font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {ongoingLeads.map((lead, idx) => (
-                  <tr key={idx} className="border-b last:border-none">
-                    <td className="py-1 px-1">{lead.type}</td>
-                    <td className="py-1 px-1">{lead.id}</td>
-                    <td className="py-1 px-1">{lead.telecaller}</td>
-                    <td className="py-1 px-1">{lead.date}</td>
-                    <td className="py-1 px-1">
-                      <span className="bg-[#fff4e5] text-[#ff9900] px-2 py-[2px] rounded font-semibold text-[10px]">
+                  <tr
+                    key={idx}
+                    className={`transition ${
+                      idx % 2 === 0 ? "bg-white" : "bg-[#f6f8fb]"
+                    } hover:bg-[#fde68a]/40`}
+                  >
+                    <td className="py-2 px-3">{lead.type}</td>
+                    <td className="py-2 px-3 font-mono">{lead.id}</td>
+                    <td className="py-2 px-3">{lead.telecaller}</td>
+                    <td className="py-2 px-3">{lead.date}</td>
+                    <td className="py-2 px-3">
+                      <span className="flex items-center gap-1 bg-[#fff4e5] text-[#b45309] px-2 py-1 rounded font-semibold text-[10px] shadow">
+                        <FaChartLine />
                         {lead.status}
                       </span>
                     </td>
