@@ -44,7 +44,7 @@ export class Lead {
   })
   status: LeadStatus;
 
-  @Prop({ required: true })
+  @Prop()
   assignedTo: string;
 
   @Prop()

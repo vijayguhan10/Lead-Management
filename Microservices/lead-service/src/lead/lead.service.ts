@@ -33,7 +33,6 @@ export class LeadService {
     return createdLead.save();
   }
 
-  // Get all leads with optional filtering
   async findAll(query: any = {}): Promise<Lead[]> {
     const { status, priority, assignedTo, source, createdAt, tags } = query;
     const filter: any = {};
@@ -44,7 +43,6 @@ export class LeadService {
     if (source) filter.source = source;
     if (tags) filter.tags = { $in: Array.isArray(tags) ? tags : [tags] };
 
-    // Date range filtering
     if (createdAt) {
       const { startDate, endDate } = createdAt;
       if (startDate && endDate) {
@@ -145,16 +143,53 @@ export class LeadService {
     return lead.save();
   }
 
-  // Bulk assign leads to telecaller
-  async bulkAssign(leadIds: string[], telecallerId: string): Promise<number> {
-    const result = await this.leadModel
-      .updateMany(
-        { _id: { $in: leadIds } },
-        { $set: { assignedTo: telecallerId } },
-      )
-      .exec();
+  // Smart bulk assign leads
+  async smartBulkAssign(leadIds: string[]): Promise<any> {
+    try {
+      // Validate that all leads exist
+      const leads = await this.leadModel.find({ _id: { $in: leadIds } }).exec();
 
-    return result.modifiedCount;
+      if (leads.length !== leadIds.length) {
+        throw new NotFoundException('One or more leads not found');
+      }
+
+      // Use the telecaller service to perform smart assignment
+      const result = await this.telecallerClient.smartAssignLeads(leadIds);
+
+      if (!result || !result.success) {
+        throw new ConflictException(
+          `Failed to assign leads: ${result?.error || 'Unknown error'}`,
+        );
+      }
+
+      // Update lead assignments in our database
+      let updatedCount = 0;
+
+      for (const assignment of result.assignments || []) {
+        const telecallerId = assignment.telecallerId;
+        const assignedLeadIds = assignment.assignedLeads || [];
+
+        // Bulk update all leads assigned to this telecaller
+        if (assignedLeadIds.length > 0) {
+          const updateResult = await this.leadModel
+            .updateMany(
+              { _id: { $in: assignedLeadIds } },
+              { assignedTo: telecallerId },
+            )
+            .exec();
+
+          updatedCount += updateResult.modifiedCount;
+        }
+      }
+
+      return {
+        ...result,
+        updatedLeads: updatedCount,
+      };
+    } catch (error) {
+      console.error('Error in smartBulkAssign:', error);
+      throw error;
+    }
   }
 
   // Schedule next follow-up
@@ -230,5 +265,15 @@ export class LeadService {
         },
       })
       .exec();
+  }
+
+  async updateNotes(id: string, notes: string): Promise<Lead> {
+    const updatedLead = await this.leadModel
+      .findByIdAndUpdate(id, { notes }, { new: true })
+      .exec();
+    if (!updatedLead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+    return updatedLead;
   }
 }

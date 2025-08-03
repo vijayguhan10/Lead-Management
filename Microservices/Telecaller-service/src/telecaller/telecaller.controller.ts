@@ -9,39 +9,46 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { TelecallerService } from './telecaller.service';
 import { TelecallerDto } from './DTO/telecaller.dto';
 import { Telecaller } from './schema/telecaller.schema';
 import { JwtAuthGuard } from '../auth/jwt.guard';
-import { RolesGuard } from '../auth/roles.guard';
+import { AuthClient } from '../auth/auth.client';
+import { TelecallerRoleGuard, AdminAccessRoleGuard } from '../auth/Role.guard';
 
 @Controller('telecallers')
-@UseGuards(JwtAuthGuard, RolesGuard) // Apply both guards to all routes
 export class TelecallerController {
-  constructor(private readonly telecallerService: TelecallerService) {}
+  constructor(
+    private readonly telecallerService: TelecallerService,
+    private readonly authClient: AuthClient,
+  ) {}
 
-  // GET /telecallers - List all telecallers
   @Get()
-  async findAll(): Promise<Telecaller[]> {
+  @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
+  async findAll(@Req() req): Promise<Telecaller[]> {
     return this.telecallerService.findAll();
   }
 
-  // GET /telecallers/:id - Get telecaller by ID
   @Get(':id')
+  @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
   async findById(@Param('id') id: string): Promise<Telecaller> {
     return this.telecallerService.findById(id);
   }
 
-  // POST /telecallers - Create new telecaller
   @Post()
+  @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() telecallerDto: TelecallerDto): Promise<Telecaller> {
+  async create(
+    @Body() telecallerDto: TelecallerDto,
+    @Req() req,
+  ): Promise<Telecaller> {
     return this.telecallerService.create(telecallerDto);
   }
 
-  // PUT /telecallers/:id - Update telecaller details
   @Put(':id')
+  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
   async update(
     @Param('id') id: string,
     @Body() telecallerDto: Partial<TelecallerDto>,
@@ -49,27 +56,27 @@ export class TelecallerController {
     return this.telecallerService.update(id, telecallerDto);
   }
 
-  // DELETE /telecallers/:id - Delete telecaller
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
     await this.telecallerService.remove(id);
   }
 
-  // GET /telecallers/:id/leads - Get leads assigned to a telecaller
   @Get(':id/leads')
+  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
   async getAssignedLeads(@Param('id') id: string): Promise<string[]> {
     return this.telecallerService.getAssignedLeads(id);
   }
 
-  // GET /telecallers/:id/summary - Daily summary: calls, leads contacted
   @Get(':id/summary')
+  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
   async getDailySummary(@Param('id') id: string): Promise<any> {
     return this.telecallerService.getDailySummary(id);
   }
 
-  // PUT /telecallers/assign/:leadId/:telecallerId - Assign a lead to telecaller
   @Put('assign/:leadId/:telecallerId')
+  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
   async assignLead(
     @Param('leadId') leadId: string,
     @Param('telecallerId') telecallerId: string,

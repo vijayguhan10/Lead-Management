@@ -63,13 +63,6 @@ export class LeadController {
     return this.leadService.assignLead(id, telecallerId);
   }
 
-  @Post('bulk-assign')
-  bulkAssign(
-    @Body() data: { leadIds: string[]; telecallerId: string },
-  ): Promise<number> {
-    return this.leadService.bulkAssign(data.leadIds, data.telecallerId);
-  }
-
   @Patch(':id/follow-up')
   scheduleFollowUp(
     @Param('id') id: string,
@@ -105,5 +98,17 @@ export class LeadController {
   getLeadsByStatus(@Param('status') status: LeadStatus): Promise<Lead[]> {
     return this.leadService.getLeadsByStatus(status);
   }
- 
+
+  @Post('smart-assign')
+  smartBulkAssign(@Body() data: { leadIds: string[] }): Promise<any> {
+    return this.leadService.smartBulkAssign(data.leadIds);
+  }
+
+  @Patch(':id/notes')
+  updateNotes(
+    @Param('id') id: string,
+    @Body('notes') notes: string,
+  ): Promise<Lead> {
+    return this.leadService.updateNotes(id, notes);
+  }
 }
