@@ -17,7 +17,7 @@ const menuItems = [
   { name: "Telecaller", icon: User, path: "/telecaller" },
   { name: "Recordings", icon: Mic, path: "/call-logs" },
   { name: "Settings", icon: Settings, path: "/settings" },
-  { name: "Files/Documents", icon: FolderOpen, path: "/files" },
+  { name: "Files/Documents", icon: FolderOpen, path: "/asset-management" },
   { name: "Summary", icon: FileText, path: "/summary" },
   { name: "Ai Visualizer", icon: FaRobot, path: "/ai-visualizer" },
 ];
