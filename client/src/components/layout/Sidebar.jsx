@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  LayoutDashboard,
   Users,
   User,
   Mic,
@@ -8,11 +9,15 @@ import {
   FileText,
   BarChart2,
   LogOut,
+  Torus,
 } from "lucide-react";
 import { FaRobot } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const menuItems = [
+   { name: "Onboard-Tour", icon: Torus, path: "/leads" },
+
+    { name: "Dashboard", icon: LayoutDashboard, path: "/admin-dashboard" },
   { name: "Leads", icon: Users, path: "/leads" },
   { name: "Telecaller", icon: User, path: "/telecaller" },
   { name: "Recordings", icon: Mic, path: "/call-logs" },
@@ -89,7 +94,7 @@ const SideBar = () => {
                     navigate(path);
                     closeSidebar();
                   }}
-                  className={`w-full text-left flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition ${
+                  className={`w-full1 my-first-step text-left flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition ${
                     window.location.pathname === path
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
