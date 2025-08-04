@@ -9,6 +9,7 @@ import IndividualTelecaller from "../components/Telecaller/IndividualTelecaller"
 import TelecallerOverviewPanel from "../components/Telecaller/TelecallerOverviewPanel";
 import CallLogs from "../components/Call/CallLogs";
 import { AssetManagement } from "../components/Assets/AssetManagement";
+import Settings from "../components/Settings/Settings";
 const InitialRouter = () => {
   return (
     <div>
@@ -22,6 +23,7 @@ const InitialRouter = () => {
         <Route path="/viewtelecaller" element={<IndividualTelecaller />} />
         <Route path="/leads" element={<Lead />} />
         <Route path="/asset-management" element={<AssetManagement />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </div>
   );
