@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  LayoutDashboard,
   Users,
   User,
   Mic,
@@ -8,21 +9,24 @@ import {
   FileText,
   BarChart2,
   LogOut,
+  Torus,
 } from "lucide-react";
 import { FaRobot } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const menuItems = [
+  { name: "Onboard-Tour", icon: Torus, path: "" },
+
+  { name: "Dashboard", icon: LayoutDashboard, path: "/admin-dashboard" },
   { name: "Leads", icon: Users, path: "/leads" },
   { name: "Telecaller", icon: User, path: "/telecaller" },
   { name: "Recordings", icon: Mic, path: "/call-logs" },
   { name: "Settings", icon: Settings, path: "/settings" },
-  { name: "Files/Documents", icon: FolderOpen, path: "/files" },
-  { name: "Summary", icon: FileText, path: "/summary" },
+  { name: "Files/Documents", icon: FolderOpen, path: "/asset-management" },
   { name: "Ai Visualizer", icon: FaRobot, path: "/ai-visualizer" },
 ];
 
-const SideBar = () => {
+const SideBar = ({ setRunTour }) => {
   const [isOpen, setIsOpen] = useState(false);
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
@@ -86,14 +90,18 @@ const SideBar = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(path);
-                    closeSidebar();
+                    if (name === "Onboard-Tour" && setRunTour) {
+                      setRunTour(true);
+                    } else {
+                      navigate(path);
+                      closeSidebar();
+                    }
                   }}
                   className={`w-full text-left flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition ${
                     window.location.pathname === path
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  } sidebar-tour-step sidebar-tour-step-${idx}`}
                 >
                   <Icon
                     size={20}
