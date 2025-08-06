@@ -136,7 +136,7 @@ const Dashboard = () => {
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className={`bg-gradient-to-br ${stat.color} rounded-xl shadow-lg flex flex-col items-start p-3 border border-[#e5e7eb] transition-transform hover:scale-[1.03]`}
+            className={`dashboard-card dashboard-card-${idx} bg-gradient-to-br ${stat.color} rounded-xl shadow-lg flex flex-col items-start p-3 border border-[#e5e7eb] transition-transform hover:scale-[1.03]`}
           >
             <span className="text-[11px] text-gray-500 mb-1 font-semibold">
               {stat.label}
@@ -264,7 +264,7 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs rounded-lg overflow-hidden shadow">
+            <table className="dashboard-table dashboard-table-assigned min-w-full text-xs rounded-lg overflow-hidden shadow">
               <thead className="bg-[#ede9fe] sticky top-0 z-10">
                 <tr className="text-[#7C3AED]">
                   <th className="py-2 px-3 text-left font-semibold">
@@ -325,7 +325,7 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs rounded-lg overflow-hidden shadow">
+            <table className="dashboard-table dashboard-table-ongoing min-w-full text-xs rounded-lg overflow-hidden shadow">
               <thead className="bg-[#fff4e5] sticky top-0 z-10">
                 <tr className="text-[#b45309]">
                   <th className="py-2 px-3 text-left font-semibold">

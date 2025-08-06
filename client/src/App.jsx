@@ -13,33 +13,76 @@ function App() {
 
   const steps = [
     {
-      target: ".my-first-step", // Add this class to your first feature
-      content: "This is your dashboard!",
+      target: ".sidebar-tour-step-0",
+      content:
+        "Onboard-Tour: Start here for a guided walkthrough of the app features.",
     },
     {
-      target: ".my-other-step", // Add this class to another feature
-      content: "Here you can manage telecallers.",
+      target: ".sidebar-tour-step-1",
+      content: "Dashboard: View your lead analytics and overall performance.",
     },
     {
-      target: ".sidebar-settings", // Example: settings in sidebar
-      content: "Access your settings here.",
+      target: ".sidebar-tour-step-2",
+      content: "Leads: Manage all your leads efficiently.",
     },
-    // ...add more steps as needed
+    {
+      target: ".sidebar-tour-step-3",
+      content: "Telecaller: Assign and monitor telecallers.",
+    },
+    {
+      target: ".sidebar-tour-step-4",
+      content: "Recordings: Access and review call logs.",
+    },
+    {
+      target: ".sidebar-tour-step-5",
+      content: "Settings: Customize your account and preferences.",
+    },
+    {
+      target: ".sidebar-tour-step-6",
+      content: "Files/Documents: Manage your assets and documents.",
+    },
+    {
+      target: ".sidebar-tour-step-7",
+      content: "Summary: Get a quick overview of your activities.",
+    },
+    {
+      target: ".sidebar-tour-step-8",
+      content:
+        "Ai Visualizer: Visualize your lead data with AI-powered insights.",
+    },
+
+    // Dashboard Cards
+    {
+      target: ".dashboard-card-0",
+      content: "Assigned Leads: Total leads assigned this month.",
+    },
+    {
+      target: ".dashboard-card-1",
+      content: "Converted Leads: Leads successfully converted this month.",
+    },
+    {
+      target: ".dashboard-card-2",
+      content: "Pending Leads: Leads still pending action.",
+    },
+    {
+      target: ".dashboard-card-3",
+      content: "Conversion Rate: Overall percentage of leads converted.",
+    },
+
+    // Dashboard Tables
+    {
+      target: ".dashboard-table-assigned",
+      content:
+        "Assigned Leads Table: Details of leads assigned to telecallers.",
+    },
+    {
+      target: ".dashboard-table-ongoing",
+      content: "On-going Leads Table: Leads currently in progress.",
+    },
   ];
 
   return (
     <div className="font-poppins">
-      {!isLoginPage && <SideBar />}
-      {!isLoginPage && <Header />}
-      <div className="ml-64">
-        <InitialRouter />
-      </div>
-      <button
-        onClick={() => setRunTour(true)}
-        className="fixed top-4 right-4 px-4 py-2 bg-black text-white rounded"
-      >
-        Start Onboarding Tour
-      </button>
       <Joyride
         steps={steps}
         run={runTour}
@@ -62,6 +105,12 @@ function App() {
           }
         }}
       />
+
+      {!isLoginPage && <SideBar setRunTour={setRunTour} />}
+      {!isLoginPage && <Header />}
+      <div className="ml-64 main-content">
+        <InitialRouter />
+      </div>
     </div>
   );
 }

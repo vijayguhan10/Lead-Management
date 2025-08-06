@@ -10,6 +10,7 @@ import TelecallerOverviewPanel from "../components/Telecaller/TelecallerOverview
 import CallLogs from "../components/Call/CallLogs";
 import { AssetManagement } from "../components/Assets/AssetManagement";
 import Settings from "../components/Settings/Settings";
+import Ai from "../components/AI/Ai";
 const InitialRouter = () => {
   return (
     <div>
@@ -24,6 +25,7 @@ const InitialRouter = () => {
         <Route path="/leads" element={<Lead />} />
         <Route path="/asset-management" element={<AssetManagement />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/ai-visualizer" element={<Ai />} />
       </Routes>
     </div>
   );

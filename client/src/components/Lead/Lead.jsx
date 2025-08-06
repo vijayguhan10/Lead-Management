@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Slate, Editable, withReact } from "slate-react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { createEditor } from "slate";
 import {
   FaSearch,
@@ -17,10 +18,7 @@ import {
 import sampleData from "./sampleData";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
 
-// Chart colors
 const COLORS = ["#7C3AED", "#F59E42", "#16A34A", "#4F46E5", "#FFD700"];
 
 const Lead = () => {
@@ -151,9 +149,8 @@ const Lead = () => {
   const tabLeads = getTabLeads();
 
   // Slate editor state for notes
-  const [editor] = useState(() => withReact(createEditor()));
   const [notesLead, setNotesLead] = useState(null);
-  const [noteValue, setNoteValue] = useState(""); // ReactQuill uses string
+  const [noteValue, setNoteValue] = useState("");
 
   return (
     <div className="p-8 min-h-screen bg-[#f6f8fb] font-luxury">
@@ -444,37 +441,60 @@ const Lead = () => {
           </div>
         </div>
       )}
-      {/* Notes/Comments Section */}
       {notesLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="p-8 rounded-2xl bg-white shadow-2xl border border-[#FFD700] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
+        <div className="fixed bg-[#00000050] inset-0 z-50 flex items-center justify-center">
+          <div className="p-0 rounded-2xl bg-white shadow-2xl border-2 border-[#FFD700] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setNotesLead(null)}
+              aria-label="Close"
             >
               &times;
             </button>
-            <h2 className="text-2xl font-bold text-[#7C3AED] mb-4 flex items-center gap-2">
-              <FaCommentDots /> Notes for {notesLead.name}
-            </h2>
-            <div className="mb-4">
+            <div className="flex items-center gap-3 px-8 pt-8 pb-2 border-b border-gray-200">
+              <FaCommentDots className="text-[#FFD700] text-3xl" />
+              <h2 className="text-2xl font-extrabold text-[#4F46E5]">
+                Notes for <span className="text-black">{notesLead.name}</span>
+              </h2>
+            </div>
+            <div className="mb-4 px-8 pt-4">
               <ReactQuill
                 value={noteValue}
                 onChange={setNoteValue}
-                placeholder="Add your note or tag a telecaller..."
+                placeholder="Type your note here. You can format text, add lists, and links."
+                theme="snow"
+                className="bg-white rounded-xl border border-gray-300 shadow focus:ring-2 focus:ring-[#FFD700] min-h-[180px] text-base"
+                style={{
+                  fontFamily: "Inter, Arial, sans-serif",
+                  fontSize: "1.05rem",
+                  borderRadius: "16px",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+                  marginBottom: "0.5rem",
+                }}
+                modules={{
+                  toolbar: [
+                    [{ header: [1, 2, false] }],
+                    ["bold", "italic", "underline", "strike"],
+                    [{ color: [] }, { background: [] }],
+                    [{ list: "ordered" }, { list: "bullet" }],
+                    ["link", "image"],
+                    ["clean"],
+                  ],
+                }}
               />
             </div>
-            <button
-              className="px-6 py-3 bg-[#FFD700] text-[#4F46E5] rounded-xl shadow-xl font-bold text-lg hover:bg-[#FDE68A] transition"
-              onClick={() => {
-                // Save note logic here
-                // Example: noteValue contains HTML string
-                setNotesLead(null);
-                setNoteValue("");
-              }}
-            >
-              Add Note
-            </button>
+            <div className="flex justify-end px-8 pb-8">
+              <button
+                className="px-7 py-3 bg-gradient-to-r from-[#FFD700] to-[#FDE68A] text-[#4F46E5] rounded-full shadow-xl font-bold text-lg hover:scale-105 transition"
+                onClick={() => {
+                  // Save note logic here
+                  setNotesLead(null);
+                  setNoteValue("");
+                }}
+              >
+                Add Note
+              </button>
+            </div>
           </div>
         </div>
       )}
