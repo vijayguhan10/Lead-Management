@@ -1,7 +1,7 @@
 import React from "react";
 import { FaFileExport, FaFilter } from "react-icons/fa";
 
-const Header = ({ sidebarCollapsed }) => {
+const Header = () => {
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
@@ -10,11 +10,7 @@ const Header = ({ sidebarCollapsed }) => {
   });
 
   return (
-    <div
-      className={`p-3 mb-3 transition-all duration-300 ${
-        sidebarCollapsed ? "ml-20" : "ml-64"
-      }`}
-    >
+    <div className={`p-3 mb-3 transition-all duration-300 `}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
           <div>
