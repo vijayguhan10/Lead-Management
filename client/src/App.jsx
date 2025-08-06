@@ -3,13 +3,20 @@ import SideBar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import InitialRouter from "./Router/InitialRouter";
 import { useLocation } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Joyride from "react-joyride";
 
 function App() {
   const location = useLocation();
-  const isLoginPage = location.pathname === "/login";
   const [runTour, setRunTour] = useState(false);
+
+  // Paths where sidebar/header should be hidden
+  const hideSidebarPaths = ["/", "/login", "/auth", "/signup"];
+  const shouldHideSidebar = hideSidebarPaths.includes(location.pathname);
+
+  useEffect(() => {
+    setRunTour(false); // Reset tour on route change if needed
+  }, [location.pathname]);
 
   const steps = [
     {
@@ -50,7 +57,6 @@ function App() {
       content:
         "Ai Visualizer: Visualize your lead data with AI-powered insights.",
     },
-
     // Dashboard Cards
     {
       target: ".dashboard-card-0",
@@ -68,7 +74,6 @@ function App() {
       target: ".dashboard-card-3",
       content: "Conversion Rate: Overall percentage of leads converted.",
     },
-
     // Dashboard Tables
     {
       target: ".dashboard-table-assigned",
@@ -82,35 +87,32 @@ function App() {
   ];
 
   return (
-    <div className="font-poppins">
+    <div className="flex font-poppins overflow-x-hidden">
+      {!shouldHideSidebar && <SideBar setRunTour={setRunTour} />}
+
+      <div className={shouldHideSidebar ? "w-full" : "xl:ml-64 w-full"}>
+        {!shouldHideSidebar && <Header />}
+        <InitialRouter />
+      </div>
+
+      {/* Joyride stays here, always mounted */}
       <Joyride
         steps={steps}
         run={runTour}
         continuous
         showSkipButton
-        showProgress
         styles={{
           options: {
             zIndex: 10000,
-            arrowColor: "#000",
-            backgroundColor: "#fff",
-            overlayColor: "rgba(0,0,0,0.4)",
-            primaryColor: "#000",
-            textColor: "#222",
           },
         }}
         callback={(data) => {
-          if (data.status === "finished" || data.status === "skipped") {
+          const { status } = data;
+          if (status === "finished" || status === "skipped") {
             setRunTour(false);
           }
         }}
       />
-
-      {!isLoginPage && <SideBar setRunTour={setRunTour} />}
-      {!isLoginPage && <Header />}
-      <div className="ml-64 main-content">
-        <InitialRouter />
-      </div>
     </div>
   );
 }
