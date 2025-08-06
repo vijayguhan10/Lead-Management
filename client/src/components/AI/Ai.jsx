@@ -54,9 +54,7 @@ const Ai = () => {
   return (
     <div className="min-h-screen w-full bg-[#f7f8fa] flex flex-col items-center justify-center px-0 py-0">
       <div className="w-full max-w-4xl mx-auto py-16">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          Hi, Gustavo
-        </h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Hi, Gustavo</h1>
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
           What can I help you with?
         </h2>
@@ -118,45 +116,42 @@ const Ai = () => {
             </h2>
             <div className="h-64 overflow-y-auto mb-8 w-full">
               <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-700">
-                    <th className="py-4 px-4 text-left font-semibold">Name</th>
-                    <th className="py-4 px-4 text-left font-semibold">Email</th>
-                    <th className="py-4 px-4 text-left font-semibold">Phone</th>
-                    <th className="py-4 px-4 text-left font-semibold">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
+               
                 <tbody>
                   {sampleLeads.map((lead, idx) => (
                     <tr
                       key={idx}
-                      className="transition bg-white hover:bg-gray-50 border-b border-gray-200"
+                      className="transition bg-white hover:bg-gray-50 border-b-2 border-gray-300"
                     >
-                      <td className="py-5 px-4 font-bold text-gray-900 flex items-center gap-2 text-lg">
-                        <FaUser className="text-gray-400" /> {lead.name}
+                      <td className="py-5 px-4 font-bold text-gray-900 flex items-center gap-2 text-lg whitespace-nowrap border-r border-gray-200">
+                        <FaUser className="text-gray-400" />
+                        <span>{lead.name}</span>
                       </td>
-                      <td className="py-5 px-4 text-gray-700 flex items-center gap-2 text-base">
-                        <FaEnvelope className="text-gray-400" /> {lead.email}
+                      <td className="py-5 px-4 text-gray-700 flex items-center gap-2 text-base whitespace-nowrap border-r border-gray-200">
+                        <FaEnvelope className="text-gray-400" />
+                        <span>{lead.email}</span>
                       </td>
-                      <td className="py-5 px-4 text-gray-700 flex items-center gap-2 text-base">
-                        <FaPhone className="text-gray-400" /> {lead.phone}
+                      <td className="py-5 px-4 text-gray-700 flex items-center gap-2 text-base whitespace-nowrap border-r border-gray-200">
+                        <FaPhone className="text-gray-400" />
+                        <span>{lead.phone}</span>
                       </td>
-                      <td className="py-5 px-4">
+                      <td className="py-5 px-4 whitespace-nowrap">
                         {lead.status === "Qualified" && (
                           <span className="px-4 py-2 rounded-full bg-gray-100 text-gray-900 font-bold flex items-center gap-2 border border-gray-200 text-base">
-                            <FaCheckCircle className="text-gray-400" /> Qualified
+                            <FaCheckCircle className="text-gray-400" />{" "}
+                            Qualified
                           </span>
                         )}
                         {lead.status === "Converted" && (
                           <span className="px-4 py-2 rounded-full bg-gray-100 text-gray-900 font-bold flex items-center gap-2 border border-gray-200 text-base">
-                            <FaCheckCircle className="text-gray-400" /> Converted
+                            <FaCheckCircle className="text-gray-400" />{" "}
+                            Converted
                           </span>
                         )}
                         {lead.status === "Contacted" && (
                           <span className="px-4 py-2 rounded-full bg-gray-100 text-gray-900 font-bold flex items-center gap-2 border border-gray-200 text-base">
-                            <FaCheckCircle className="text-gray-400" /> Contacted
+                            <FaCheckCircle className="text-gray-400" />{" "}
+                            Contacted
                           </span>
                         )}
                         {lead.status === "Pending" && (
