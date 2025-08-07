@@ -119,6 +119,12 @@ function Auth() {
                 <span className="text-gray-700 font-medium">Telecaller</span>
               </label>
             </div>
+              <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow"
+            >
+            LogIn
+            </button>
 
             <div className="flex gap-4 mt-4">
               <a href="/privacy-policy" className="text-sm text-gray-500 hover:underline">
