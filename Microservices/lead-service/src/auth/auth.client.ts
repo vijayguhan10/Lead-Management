@@ -14,7 +14,7 @@ export class AuthClient {
       transport: Transport.TCP,
       options: {
         host: 'localhost', // Change if your auth service runs elsewhere
-        port: 8002, // Change to your auth service port
+        port: 8000, // Change to your auth service port
       },
     });
   }

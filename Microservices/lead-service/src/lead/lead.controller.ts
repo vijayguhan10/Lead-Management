@@ -13,10 +13,10 @@ import {
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
 import { Lead, LeadStatus } from './schema/lead.schema';
-import { RolesGuard, JwtAuthGuard, AdminRoleGuard } from '../auth/roles.guard';
+import { RolesGuard, AdminRoleGuard } from '../auth/roles.guard';
 
 @Controller('leads')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
 

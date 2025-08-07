@@ -16,7 +16,11 @@ import { TelecallerDto } from './DTO/telecaller.dto';
 import { Telecaller } from './schema/telecaller.schema';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { AuthClient } from '../auth/auth.client';
-import { TelecallerRoleGuard, AdminAccessRoleGuard } from '../auth/Role.guard';
+import {
+  TelecallerRoleGuard,
+  AdminAccessRoleGuard,
+  TelecallerOrAdminGuard,
+} from '../auth/Role.guard';
 
 @Controller('telecallers')
 export class TelecallerController {
@@ -48,7 +52,7 @@ export class TelecallerController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
+  @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
   async update(
     @Param('id') id: string,
     @Body() telecallerDto: Partial<TelecallerDto>,
@@ -64,23 +68,17 @@ export class TelecallerController {
   }
 
   @Get(':id/leads')
-  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
+  @Get(':id/leads')
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
   async getAssignedLeads(@Param('id') id: string): Promise<string[]> {
     return this.telecallerService.getAssignedLeads(id);
   }
 
   @Get(':id/summary')
-  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
   async getDailySummary(@Param('id') id: string): Promise<any> {
     return this.telecallerService.getDailySummary(id);
   }
 
-  @Put('assign/:leadId/:telecallerId')
-  @UseGuards(JwtAuthGuard, TelecallerRoleGuard)
-  async assignLead(
-    @Param('leadId') leadId: string,
-    @Param('telecallerId') telecallerId: string,
-  ): Promise<Telecaller> {
-    return this.telecallerService.assignLead(leadId, telecallerId);
-  }
+  
 }

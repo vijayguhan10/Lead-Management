@@ -19,11 +19,14 @@ export class RolesGuard implements CanActivate {
     let validation;
     try {
       validation = await this.authClient.validateToken(token);
+      console.log('Token validation result:', validation);
     } catch (err) {
+      console.error('Token validation failed:', err);
       throw new UnauthorizedException('Token validation failed');
     }
-    if (!validation || !validation.isValid || !validation.user)
+    if (!validation?.isValid || !validation.user) {
       throw new UnauthorizedException('Invalid token');
+    }
 
     request.user = validation.user;
     const allowedRoles = ['telecaller', 'admin'];
@@ -31,46 +34,22 @@ export class RolesGuard implements CanActivate {
     let roleCheck;
     try {
       roleCheck = await this.authClient.checkRole(
-        request.user.id,
+        request.user.userId,
         allowedRoles,
       );
+      console.log('Role check result:', roleCheck);
     } catch (err) {
+      console.error('Role check failed:', err);
       throw new UnauthorizedException('Role check failed');
     }
-    if (!roleCheck || roleCheck.hasRole !== true)
-      throw new UnauthorizedException('Insufficient role');
+    if (!roleCheck?.hasRole) {
+      throw new UnauthorizedException(roleCheck?.error || 'Insufficient role');
+    }
 
     return true;
   }
 }
 
-@Injectable()
-export class JwtAuthGuard implements CanActivate {
-  constructor(private authClient: AuthClient) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid authorization token');
-    }
-
-    const token = authHeader.split(' ')[1];
-    let result;
-    try {
-      result = await this.authClient.validateToken(token);
-    } catch (err) {
-      throw new UnauthorizedException('Token validation failed');
-    }
-    if (!result || !result.isValid || !result.user) {
-      throw new UnauthorizedException(result?.error || 'Invalid token');
-    }
-
-    request.user = result.user;
-    return true;
-  }
-}
 @Injectable()
 export class AdminRoleGuard implements CanActivate {
   constructor(private readonly authClient: AuthClient) {}
@@ -84,22 +63,32 @@ export class AdminRoleGuard implements CanActivate {
     let validation;
     try {
       validation = await this.authClient.validateToken(token);
+      console.log('Token validation result:', validation);
     } catch (err) {
+      console.error('Token validation failed:', err);
       throw new UnauthorizedException('Token validation failed');
     }
-    if (!validation || !validation.isValid || !validation.user)
+    if (!validation?.isValid || !validation.user) {
       throw new UnauthorizedException('Invalid token');
+    }
 
     request.user = validation.user;
 
     let roleCheck;
     try {
-      roleCheck = await this.authClient.checkRole(request.user.id, ['admin']);
+      roleCheck = await this.authClient.checkRole(request.user.userId, [
+        'admin',
+      ]);
+      console.log('Role check result:', roleCheck);
     } catch (err) {
+      console.error('Role check failed:', err);
       throw new UnauthorizedException('Role check failed');
     }
-    if (!roleCheck || roleCheck.hasRole !== true)
-      throw new UnauthorizedException('Admin role required');
+    if (!roleCheck?.hasRole) {
+      throw new UnauthorizedException(
+        roleCheck?.error || 'Admin role required',
+      );
+    }
 
     return true;
   }
