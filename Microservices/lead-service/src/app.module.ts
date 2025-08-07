@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LeadModule } from './lead/lead.module';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
-import { AuthModule } from './auth/auth.module';
+
 
 @Module({
   imports: [
@@ -12,9 +10,8 @@ import { AuthModule } from './auth/auth.module';
     
     ),
     LeadModule,
-    AuthModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

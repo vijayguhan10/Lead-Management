@@ -13,11 +13,10 @@ import {
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
 import { Lead, LeadStatus } from './schema/lead.schema';
-import { Roles } from '../auth/roles.decorator';
-import { RolesGuard } from '../auth/roles.guard';
+import { RolesGuard, AdminRoleGuard } from '../auth/roles.guard';
 
 @Controller('leads')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
 
@@ -58,6 +57,7 @@ export class LeadController {
   }
 
   @Patch(':id/assign/:telecallerId')
+  @UseGuards(AdminRoleGuard)
   assignLead(
     @Param('id') id: string,
     @Param('telecallerId') telecallerId: string,
@@ -90,7 +90,6 @@ export class LeadController {
   }
 
   @Get('telecaller/:telecallerId')
-  @Roles('telecaller')
   getLeadsByTelecaller(
     @Param('telecallerId') telecallerId: string,
   ): Promise<Lead[]> {
@@ -103,6 +102,7 @@ export class LeadController {
   }
 
   @Post('smart-assign')
+  @UseGuards(AdminRoleGuard)
   smartBulkAssign(@Body() data: { leadIds: string[] }): Promise<any> {
     return this.leadService.smartBulkAssign(data.leadIds);
   }

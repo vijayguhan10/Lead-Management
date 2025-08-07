@@ -22,6 +22,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
     const result = await this.authClient.validateToken(token);
     console.log('Token Validation Result:', result);
+    console.log('Token Validation Result:', result);
     if (!result.isValid) {
       throw new UnauthorizedException(result.error || 'Invalid token');
     }
