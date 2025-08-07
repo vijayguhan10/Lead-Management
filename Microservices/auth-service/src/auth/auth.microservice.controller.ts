@@ -35,7 +35,8 @@ export class AuthMicroserviceController {
       }
 
       const hasRole = requiredRoles.includes(user.role);
-      return { hasRole };
+
+      return { hasRole, role: user.role };
     } catch (error) {
       return {
         hasRole: false,

@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { AuthClient } from './auth.client';
 
-@Module({})
+@Module({
+  providers: [AuthClient],
+  exports: [AuthClient],
+})
 export class AuthModule {}
