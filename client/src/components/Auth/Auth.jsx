@@ -60,13 +60,11 @@ function Auth() {
               </h2>
             </div>
 
-       
-
             <input
               type="email"
               name="email"
               placeholder="Your Email"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 font-poppins rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.email}
               onChange={handleChange}
               required
@@ -77,7 +75,7 @@ function Auth() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 font-poppins rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -96,9 +94,8 @@ function Auth() {
               </button>
             </div>
 
-           
             {/* Role Selection */}
-            <div className="flex items-center gap-6 justify-center mt-2">
+            <div className="flex gap-6  mt-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -123,35 +120,28 @@ function Auth() {
               </label>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow"
-            >
-              {isSignup ? "Sign Up" : "Login"}
-            </button>
-            <p
-              className="text-center text-gray-600 mt-2 cursor-pointer"
-              onClick={() => setIsSignup(!isSignup)}
-            >
-              {isSignup
-                ? "Already have an account? Login here"
-                : "Don't have an account? Sign up here"}
-            </p>
+            <div className="flex gap-4 mt-4">
+              <a href="/privacy-policy" className="text-sm text-gray-500 hover:underline">
+                Privacy Policy
+              </a>
+              <a href="/terms-and-conditions" className="text-sm text-gray-500 hover:underline">
+                Terms and Conditions
+              </a>
+            </div>
           </form>
         </div>
 
         {/* Right Side - Image & Text */}
-        <div className="hidden lg:block bg-gradient-to-br from-blue-50 via-white to-green-50 rounded-r-2xl relative">
+        <div className="hidden lg:block  rounded-r-2xl relative">
           <div className="h-full flex flex-col justify-between">
-            <video
-              src="https://cdnl.iconscout.com/lottie/premium/preview-watermark/man-doing-tyre-change-animation-download-in-lottie-json-gif-static-svg-file-formats--car-repairing-service-pack-services-animations-9748775.mp4"
-              className="w-full h-full object-cover"
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
-            <div className="absolute bottom-10 left-10 bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+            <iframe
+              src="https://lottie.host/embed/00deded2-4e0f-44cf-b92f-770f252b0540/aOwoc6SXTI.lottie"
+              className="w-[85%] h-full rounded-r-2xl"
+              style={{ minHeight: "300px", border: "none" }}
+              allowFullScreen
+              title="Lead Management Animation"
+            />{" "}
+            <div className="absolute bottom-2 left-10  bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
               <h3 className="font-semibold text-blue-700">
                 Your leads, your rules
               </h3>

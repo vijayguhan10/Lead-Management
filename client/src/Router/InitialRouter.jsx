@@ -12,6 +12,7 @@ import { AssetManagement } from "../components/Assets/AssetManagement";
 import Settings from "../components/Settings/Settings";
 import Ai from "../components/AI/Ai";
 import SuperAdminDashboard from "../components/Admin/SuperAdminDashboard'";
+import OnboardConfig from "../components/Admin/Configuration";
 const InitialRouter = () => {
   return (
     <div>
@@ -29,6 +30,7 @@ const InitialRouter = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/ai-visualizer" element={<Ai />} />
         <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
+        <Route path="/onboard-configuration" element={<OnboardConfig />} />
       </Routes>
     </div>
   );
