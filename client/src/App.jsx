@@ -101,9 +101,71 @@ function App() {
         run={runTour}
         continuous
         showSkipButton
+        showProgress
         styles={{
           options: {
             zIndex: 10000,
+            backgroundColor: "#fff",
+            borderRadius: "18px",
+            boxShadow: "0 8px 32px rgba(44, 62, 80, 0.15)",
+            padding: "24px",
+            color: "#22223b",
+            fontFamily: "Poppins, sans-serif",
+            fontSize: "1.08rem",
+            width: 420,
+            transition:
+              "box-shadow 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1)",
+          },
+          tooltip: {
+            backgroundColor: "#fff",
+            color: "#22223b",
+            borderRadius: "18px",
+            boxShadow: "0 8px 32px rgba(44, 62, 80, 0.15)",
+            padding: "24px",
+            fontFamily: "Poppins, sans-serif",
+            fontSize: "1.08rem",
+            transition: "all 0.35s cubic-bezier(.4,0,.2,1)",
+            transform: "scale(1)",
+            opacity: 1,
+          },
+          buttonNext: {
+            backgroundColor: "#3b82f6",
+            color: "#fff",
+            borderRadius: "8px",
+            fontWeight: "600",
+            fontSize: "1rem",
+            padding: "10px 22px",
+            boxShadow: "0 2px 8px rgba(59, 130, 246, 0.12)",
+            transition: "background 0.2s",
+          },
+          buttonBack: {
+            color: "#3b82f6",
+            background: "none",
+            fontWeight: "500",
+            fontSize: "1rem",
+            padding: "10px 18px",
+            transition: "color 0.2s",
+          },
+          buttonClose: {
+            color: "#ef4444",
+            background: "none",
+            fontWeight: "600",
+            fontSize: "1.2rem",
+            padding: "8px",
+            transition: "color 0.2s",
+          },
+          arrow: {
+            color: "#3b82f6",
+            transition: "color 0.2s",
+          },
+          badge: {
+            backgroundColor: "#3b82f6",
+            color: "#fff",
+            fontWeight: "600",
+            fontSize: "0.95rem",
+            borderRadius: "6px",
+            padding: "4px 10px",
+            transition: "background 0.2s",
           },
         }}
         callback={(data) => {
