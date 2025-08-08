@@ -82,7 +82,7 @@ export class TelecallerService {
       telecallerName: telecaller.name,
       dailyStats: { callsMade: 0, leadsContacted: 0, successRate: '0%' },
       targetCompletion: {
-        dailyCallTarget: telecaller.performanceMetrics.dailyCallTarget,
+        dailyCallTarget: telecaller.performanceMetrics?.dailyCallTarget ?? 0,
         completionPercentage: '0%',
       },
     };
