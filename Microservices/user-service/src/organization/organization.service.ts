@@ -17,12 +17,16 @@ export class OrganizationService {
     // Create organization without telecallers first
     const orgData = { ...data };
     delete orgData.telecallers; // Remove telecallers for initial save
-    
     const org = new this.orgModel(orgData);
     const savedOrg = await org.save();
-    // Ensure savedOrg._id is treated as a string for downstream usage
     const orgId = (savedOrg._id as any).toString();
 
+    await this.createAdminUsers(data, orgId);
+    await this.createTelecallersForOrg(data.telecallers, orgId, savedOrg);
+    return savedOrg;
+  }
+
+  private async createAdminUsers(data: Partial<IOrganization>, orgId: string) {
     // Create admin user in auth-service
     const adminUser = {
       email: data.admin?.email,
@@ -45,55 +49,52 @@ export class OrganizationService {
       organizationId: orgId,
     };
     await this.authClient.createUser(orgUser);
+  }
 
-    // Create telecaller users and telecaller records
-    if (Array.isArray(data.telecallers)) {
-      const updatedTelecallers: ITelecaller[] = [];
-      for (const tc of data.telecallers) {
-        // Create user in auth-service
-        const telecallerUser = {
-          email: tc.email,
-          password: '1234',
-          isActive: true,
-          phoneNumber: tc.phone,
-          username: tc.name,
-          role: 'telecaller',
-          organizationId: orgId,
-        };
-        const createdUser = await this.authClient.createUser(telecallerUser);
-        const userId = createdUser?.user?.user?._id || '';
+  private async createTelecallersForOrg(telecallers: ITelecaller[] | undefined, orgId: string, savedOrg: IOrganization) {
+    if (!Array.isArray(telecallers)) return;
+    const updatedTelecallers: ITelecaller[] = [];
+    for (const tc of telecallers) {
+      // Create user in auth-service
+      const telecallerUser = {
+        email: tc.email,
+        password: '1234',
+        isActive: true,
+        phoneNumber: tc.phone,
+        username: tc.name,
+        role: 'telecaller',
+        organizationId: orgId,
+      };
+      const createdUser = await this.authClient.createUser(telecallerUser);
+      const userId = createdUser?.user?.user?._id || '';
 
-        // Create telecaller in telecaller-service
-        const telecallerDoc: any = {
-          userId,
-          name: tc.name,
-          phone: tc.phone,
-          email: tc.email,
-          assignedLeads: [],
-          organizationId: orgId,
-        };
-        if (tc.performanceMetrics && (tc.performanceMetrics.dailyCallTarget !== undefined || tc.performanceMetrics.monthlyLeadGoal !== undefined)) {
-          telecallerDoc.performanceMetrics = tc.performanceMetrics;
-        }
-        await this.telecallerClient.createTelecaller(telecallerDoc);
-
-        // Update the telecaller in organization with userId as _id
-        updatedTelecallers.push({
-          userId,
-          name: tc.name,
-          email: tc.email,
-          phone: tc.phone,
-          status: tc.status || 'available',
-          ...(tc.performanceMetrics && { performanceMetrics: tc.performanceMetrics })
-        } as ITelecaller);
+      // Create telecaller in telecaller-service
+      const telecallerDoc: any = {
+        userId,
+        name: tc.name,
+        phone: tc.phone,
+        email: tc.email,
+        assignedLeads: [],
+        organizationId: orgId,
+      };
+      if (tc.performanceMetrics && (tc.performanceMetrics.dailyCallTarget !== undefined || tc.performanceMetrics.monthlyLeadGoal !== undefined)) {
+        telecallerDoc.performanceMetrics = tc.performanceMetrics;
       }
-      
-      // Update the saved organization with telecallers having userId as _id
-      savedOrg.telecallers = updatedTelecallers;
-      await savedOrg.save();
-    }
+      await this.telecallerClient.createTelecaller(telecallerDoc);
 
-    return savedOrg;
+      // Update the telecaller in organization with userId as _id
+      updatedTelecallers.push({
+        userId,
+        name: tc.name,
+        email: tc.email,
+        phone: tc.phone,
+        status: tc.status || 'available',
+        ...(tc.performanceMetrics && { performanceMetrics: tc.performanceMetrics })
+      } as ITelecaller);
+    }
+    // Update the saved organization with telecallers having userId as _id
+    savedOrg.telecallers = updatedTelecallers;
+    await (savedOrg as any).save();
   }
 
   async getAllOrganizations(): Promise<IOrganization[]> {
