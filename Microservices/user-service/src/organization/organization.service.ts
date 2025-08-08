@@ -59,7 +59,7 @@ export class OrganizationService {
 
         // Create telecaller in telecaller-service
         const telecallerDoc: any = {
-          userId: createdUser?.user?._id || '',
+          userId: createdUser?.user?.user?._id || '',
           name: tc.name,
           phone: tc.phone,
           email: tc.email,
