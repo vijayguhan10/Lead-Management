@@ -8,6 +8,7 @@ export class AuthMicroserviceController {
 
   @MessagePattern({ cmd: 'create_user' })
   async createUser(@Payload() user: any) {
+    
     try {
       const created = await this.authService.create(user);
       return { success: true, user: created };
