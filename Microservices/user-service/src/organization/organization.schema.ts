@@ -1,10 +1,16 @@
-import { Schema, Document, model } from 'mongoose';
+import { Schema, Document, model, Types } from 'mongoose';
+
 
 export interface ITelecaller {
+  userId: Types.ObjectId;
   name: string;
   email: string;
   phone: string;
   status: 'available' | 'not available';
+  performanceMetrics?: {
+    dailyCallTarget?: number;
+    monthlyLeadGoal?: number;
+  };
 }
 
 export interface IOrganization extends Document {
@@ -34,14 +40,16 @@ export interface IOrganization extends Document {
   };
   plan: 'Starter' | 'Standard' | 'Premium' | 'Enterprise';
   createdAt: Date;
+  deleted: boolean;
 }
 
 const TelecallerSchema = new Schema<ITelecaller>({
+  userId: { type: Schema.Types.ObjectId, required: true, ref: 'Auth' },
   name: { type: String, required: true },
   email: { type: String, required: true },
   phone: { type: String, required: true },
   status: { type: String, enum: ['available', 'not available'], default: 'available' },
-});
+}, { _id: false });
 
 const OrganizationSchema = new Schema<IOrganization>({
   orgName: { type: String, required: true },
@@ -70,6 +78,7 @@ const OrganizationSchema = new Schema<IOrganization>({
   },
   plan: { type: String, enum: ['Starter', 'Standard', 'Premium', 'Enterprise'], required: true },
   createdAt: { type: Date, default: Date.now },
+  deleted: { type: Boolean, default: false },
 });
 
 export const OrganizationModel = model<IOrganization>('Organization', OrganizationSchema);
