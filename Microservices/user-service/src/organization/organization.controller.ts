@@ -40,4 +40,9 @@ export class OrganizationController {
   ) {
     return this.orgService.updateTelecallerStatus(orgId, telecallerUserId, status);
   }
+  
+  @Get(':id/telecallers')
+  async getTelecallers(@Param('id') id: string) {
+    return this.orgService.getTelecallers(id);
+  }
 }
