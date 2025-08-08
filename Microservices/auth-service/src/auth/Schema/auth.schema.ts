@@ -22,6 +22,9 @@ export class Auth {
 
   @Prop({ required: true, enum: ['superadmin', 'admin', 'telecaller'] })
   role: string;
+
+  @Prop()
+  organizationId?: string;
 }
 
 export const AuthSchema = SchemaFactory.createForClass(Auth);
