@@ -6,6 +6,16 @@ import { AuthService } from './auth.service';
 export class AuthMicroserviceController {
   constructor(private readonly authService: AuthService) {}
 
+  @MessagePattern({ cmd: 'create_user' })
+  async createUser(@Payload() user: any) {
+    try {
+      const created = await this.authService.create(user);
+      return { success: true, user: created };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   @MessagePattern({ cmd: 'validate_token' })
   async validateToken(@Payload() token: string) {
     try {
