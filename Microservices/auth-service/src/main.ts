@@ -11,15 +11,15 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       host: '0.0.0.0',
-      port: 8000, // Choose a port for microservice communication
+      port: 8001, // Choose a port for microservice communication
     },
   });
 
   // Start both the HTTP app and microservice
   await app.startAllMicroservices();
-  await app.listen(3000);
+  await app.listen(3001);
 
   console.log(`Auth service running on ${await app.getUrl()}`);
-  console.log(`Auth microservice running on TCP port 8000`);
+  console.log(`Auth microservice running on TCP port 8001`);
 }
 bootstrap();

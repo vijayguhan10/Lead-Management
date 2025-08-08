@@ -11,7 +11,7 @@ export default function OnboardConfig() {
     adminPhone: "",
     adminPassword: "",
     telecallers: 1,
-    telecallerDetails: [{ name: "", email: "", phone: "", role: "Telecaller" }],
+    telecallerDetails: [{ name: "", email: "", phone: "", role: "Telecaller", status: "" }],
     exotel: {
       virtualNumbers: 1,
       balance: "",

@@ -1,6 +1,8 @@
+// ...existing code...
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { TelecallerService } from './telecaller.service';
+import { TelecallerDto } from './DTO/telecaller.dto';
 
 @Controller()
 export class TelecallerMicroserviceController {
@@ -81,6 +83,16 @@ export class TelecallerMicroserviceController {
         success: false,
         error: error.message,
       };
+    }
+  }
+  
+  @MessagePattern({ cmd: 'create_telecaller' })
+  async createTelecaller(@Payload() data: TelecallerDto) {
+    try {
+      const telecaller = await this.telecallerService.create(data);
+      return { success: true, telecaller };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   }
 }

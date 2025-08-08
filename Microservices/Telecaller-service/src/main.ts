@@ -8,14 +8,14 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       host: 'localhost',
-      port: 8001,
+      port: 8006,
     },
   });
 
   await app.startAllMicroservices();
-  await app.listen(3002); 
+  await app.listen(3006); 
 
-  console.log(`Telecaller service running on http://localhost:3002`);
-  console.log(`Telecaller microservice running on TCP port 8001`);
+  console.log(`Telecaller service running on http://localhost:3006`);
+  console.log(`Telecaller microservice running on TCP port 8006`);
 }
 bootstrap();
