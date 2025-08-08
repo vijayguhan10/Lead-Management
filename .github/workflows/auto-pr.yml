@@ -1,0 +1,23 @@
+name: Auto PR to main from development1 & development2
+
+on:
+  push:
+    branches:
+      - development1
+      - development2
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${{ github.ref_name }}
+          destination_branch: main
+          pr_title: "Auto PR: Sync ${{ github.ref_name }} → main"
+          pr_body: "Auto-created pull request from ${{ github.ref_name }} to main. Please review and merge."
+          github_token: ${{ secrets.GITHUB_TOKEN }}
