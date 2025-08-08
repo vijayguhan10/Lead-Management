@@ -97,14 +97,18 @@ export class OrganizationService {
   }
 
   async getAllOrganizations(): Promise<IOrganization[]> {
-    return this.orgModel.find().exec();
+    return this.orgModel.find({ deleted: { $ne: true } }).exec();
   }
 
   async getOrganizationById(id: string): Promise<IOrganization | null> {
-    return this.orgModel.findById(id).exec();
+    const org = await this.orgModel.findById(id).exec();
+    if (!org || org.deleted) return null;
+    return org;
   }
 
   async updateOrganization(id: string, update: Partial<IOrganization>): Promise<IOrganization | null> {
+    const org = await this.orgModel.findById(id).exec();
+    if (!org || org.deleted) return null;
     return this.orgModel.findByIdAndUpdate(id, update, { new: true }).exec();
   }
 
@@ -114,17 +118,20 @@ export class OrganizationService {
   }
 
   async patchTelecallers(id: string, telecallers: ITelecaller[]): Promise<IOrganization | null> {
+    const org = await this.orgModel.findById(id).exec();
+    if (!org || org.deleted) return null;
     return this.orgModel.findByIdAndUpdate(id, { telecallers }, { new: true }).exec();
   }
 
   async getTelecallers(id: string): Promise<ITelecaller[] | null> {
-    const org = await this.orgModel.findById(id, 'telecallers').exec();
-    return org ? org.telecallers : null;
+    const org = await this.orgModel.findById(id, 'telecallers deleted').exec();
+    if (!org || org.deleted) return null;
+    return org.telecallers;
   }
 
   async updateTelecallerStatus(orgId: string, telecallerUserId: string, status: 'available' | 'not available'): Promise<{ updated: boolean }> {
     const org = await this.orgModel.findById(orgId);
-    if (!org) return { updated: false };
+    if (!org || org.deleted) return { updated: false };
     const telecaller = org.telecallers.find(tc => tc.userId.toString() === telecallerUserId);
     if (!telecaller) return { updated: false };
     telecaller.status = status;
