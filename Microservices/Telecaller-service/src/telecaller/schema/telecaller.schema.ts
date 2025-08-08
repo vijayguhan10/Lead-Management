@@ -6,11 +6,11 @@ export type TelecallerDocument = Telecaller & Document;
 
 @Schema()
 class PerformanceMetrics {
-  @Prop({ required: true })
-  dailyCallTarget: number;
+  @Prop()
+  dailyCallTarget?: number;
 
-  @Prop({ required: true })
-  monthlyLeadGoal: number;
+  @Prop()
+  monthlyLeadGoal?: number;
 }
 
 const PerformanceMetricsSchema =
@@ -33,8 +33,8 @@ export class Telecaller {
   @Prop({ type: [String], default: [] })
   assignedLeads: string[];
 
-  @Prop({ type: PerformanceMetricsSchema, required: true })
-  performanceMetrics: PerformanceMetrics;
+  @Prop({ type: PerformanceMetricsSchema, required: false })
+  performanceMetrics?: PerformanceMetrics;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Organization' })
   organizationId?: mongoose.Schema.Types.ObjectId;
