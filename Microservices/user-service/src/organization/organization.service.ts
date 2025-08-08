@@ -38,17 +38,6 @@ export class OrganizationService {
       organizationId: orgId,
     };
     await this.authClient.createUser(adminUser);
-
-    // Create organization user in auth-service (organization login)
-    const orgUser = {
-      email: `${data.orgName?.toLowerCase().replace(/\s+/g, '')}@org.com`,
-      password: '1234',
-      isActive: true,
-      username: data.orgName,
-      role: 'admin',
-      organizationId: orgId,
-    };
-    await this.authClient.createUser(orgUser);
   }
 
   private async createTelecallersForOrg(telecallers: ITelecaller[] | undefined, orgId: string, savedOrg: IOrganization) {
