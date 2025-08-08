@@ -18,8 +18,8 @@ const PerformanceMetricsSchema =
 
 @Schema({ timestamps: true })
 export class Telecaller {
-  @Prop()
-  userId: string;
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Auth', required: true })
+  userId: mongoose.Schema.Types.ObjectId;
 
   @Prop({ required: true })
   name: string;

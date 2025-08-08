@@ -14,7 +14,11 @@ export class OrganizationService {
   ) {}
 
   async createOrganization(data: Partial<IOrganization>): Promise<IOrganization> {
-    const org = new this.orgModel(data);
+    // Create organization without telecallers first
+    const orgData = { ...data };
+    delete orgData.telecallers; // Remove telecallers for initial save
+    
+    const org = new this.orgModel(orgData);
     const savedOrg = await org.save();
     // Ensure savedOrg._id is treated as a string for downstream usage
     const orgId = (savedOrg._id as any).toString();
@@ -44,6 +48,7 @@ export class OrganizationService {
 
     // Create telecaller users and telecaller records
     if (Array.isArray(data.telecallers)) {
+      const updatedTelecallers: ITelecaller[] = [];
       for (const tc of data.telecallers) {
         // Create user in auth-service
         const telecallerUser = {
@@ -56,10 +61,11 @@ export class OrganizationService {
           organizationId: orgId,
         };
         const createdUser = await this.authClient.createUser(telecallerUser);
+        const userId = createdUser?.user?.user?._id || '';
 
         // Create telecaller in telecaller-service
         const telecallerDoc: any = {
-          userId: createdUser?.user?.user?._id || '',
+          userId,
           name: tc.name,
           phone: tc.phone,
           email: tc.email,
@@ -70,7 +76,21 @@ export class OrganizationService {
           telecallerDoc.performanceMetrics = tc.performanceMetrics;
         }
         await this.telecallerClient.createTelecaller(telecallerDoc);
+
+        // Update the telecaller in organization with userId as _id
+        updatedTelecallers.push({
+          userId,
+          name: tc.name,
+          email: tc.email,
+          phone: tc.phone,
+          status: tc.status || 'available',
+          ...(tc.performanceMetrics && { performanceMetrics: tc.performanceMetrics })
+        } as ITelecaller);
       }
+      
+      // Update the saved organization with telecallers having userId as _id
+      savedOrg.telecallers = updatedTelecallers;
+      await savedOrg.save();
     }
 
     return savedOrg;
@@ -89,8 +109,8 @@ export class OrganizationService {
   }
 
   async deleteOrganization(id: string): Promise<{ deleted: boolean }> {
-    const res = await this.orgModel.deleteOne({ _id: id }).exec();
-    return { deleted: res.deletedCount === 1 };
+    const res = await this.orgModel.findByIdAndUpdate(id, { deleted: true }, { new: true }).exec();
+    return { deleted: !!res };
   }
 
   async patchTelecallers(id: string, telecallers: ITelecaller[]): Promise<IOrganization | null> {
@@ -100,5 +120,15 @@ export class OrganizationService {
   async getTelecallers(id: string): Promise<ITelecaller[] | null> {
     const org = await this.orgModel.findById(id, 'telecallers').exec();
     return org ? org.telecallers : null;
+  }
+
+  async updateTelecallerStatus(orgId: string, telecallerUserId: string, status: 'available' | 'not available'): Promise<{ updated: boolean }> {
+    const org = await this.orgModel.findById(orgId);
+    if (!org) return { updated: false };
+    const telecaller = org.telecallers.find(tc => tc.userId.toString() === telecallerUserId);
+    if (!telecaller) return { updated: false };
+    telecaller.status = status;
+    await org.save();
+    return { updated: true };
   }
 }

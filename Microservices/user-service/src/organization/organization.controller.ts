@@ -31,13 +31,13 @@ export class OrganizationController {
     return this.orgService.deleteOrganization(id);
   }
 
-  @Patch(':id/telecallers')
-  async patchTelecallers(@Param('id') id: string, @Body('telecallers') telecallers: ITelecaller[]) {
-    return this.orgService.patchTelecallers(id, telecallers);
-  }
-
-  @Get(':id/telecallers')
-  async getTelecallers(@Param('id') id: string) {
-    return this.orgService.getTelecallers(id);
+  // Update status of a telecaller in an organization
+  @Patch(':orgId/telecallers/:telecallerUserId/status')
+  async updateTelecallerStatus(
+    @Param('orgId') orgId: string,
+    @Param('telecallerUserId') telecallerUserId: string,
+    @Body('status') status: 'available' | 'not available',
+  ) {
+    return this.orgService.updateTelecallerStatus(orgId, telecallerUserId, status);
   }
 }
