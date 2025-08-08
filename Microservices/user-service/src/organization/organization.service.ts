@@ -58,15 +58,17 @@ export class OrganizationService {
         const createdUser = await this.authClient.createUser(telecallerUser);
 
         // Create telecaller in telecaller-service
-        const telecallerDoc = {
+        const telecallerDoc: any = {
           userId: createdUser?._id || '',
           name: tc.name,
           phone: tc.phone,
           email: tc.email,
           assignedLeads: [],
-          performanceMetrics: {},
           organizationId: orgId,
         };
+        if (tc.performanceMetrics && (tc.performanceMetrics.dailyCallTarget !== undefined || tc.performanceMetrics.monthlyLeadGoal !== undefined)) {
+          telecallerDoc.performanceMetrics = tc.performanceMetrics;
+        }
         await this.telecallerClient.createTelecaller(telecallerDoc);
       }
     }

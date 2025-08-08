@@ -5,6 +5,10 @@ export interface ITelecaller {
   email: string;
   phone: string;
   status: 'available' | 'not available';
+  performanceMetrics?: {
+    dailyCallTarget?: number;
+    monthlyLeadGoal?: number;
+  };
 }
 
 export interface IOrganization extends Document {
