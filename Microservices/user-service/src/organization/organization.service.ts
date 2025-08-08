@@ -100,7 +100,7 @@ export class OrganizationService {
     const org = await this.orgModel.findById(id).exec();
     if (!org || org.deleted) return null;
     return this.orgModel.findByIdAndUpdate(id, update, { new: true }).exec();
-  }
+  } 
 
   async deleteOrganization(id: string): Promise<{ deleted: boolean }> {
     const res = await this.orgModel.findByIdAndUpdate(id, { deleted: true }, { new: true }).exec();
