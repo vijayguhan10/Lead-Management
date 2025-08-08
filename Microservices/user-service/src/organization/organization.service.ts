@@ -126,6 +126,6 @@ export class OrganizationService {
     if (!telecaller) return { updated: false };
     telecaller.status = status;
     await org.save();
-    return { updated: true };
+    return { updated: true }; 
   }
 }
