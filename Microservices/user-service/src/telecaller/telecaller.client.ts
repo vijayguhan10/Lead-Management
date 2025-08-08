@@ -1,0 +1,21 @@
+import { Injectable } from '@nestjs/common';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
+
+@Injectable()
+export class TelecallerClient {
+  private readonly client: ClientProxy;
+
+  constructor() {
+    this.client = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: 8001, // telecaller-service TCP port
+      },
+    });
+  }
+
+  async createTelecaller(telecaller: any) {
+    return this.client.send({ cmd: 'create_telecaller' }, telecaller).toPromise();
+  }
+}

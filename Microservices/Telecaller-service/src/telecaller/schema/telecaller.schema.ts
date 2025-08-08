@@ -35,6 +35,9 @@ export class Telecaller {
 
   @Prop({ type: PerformanceMetricsSchema, required: true })
   performanceMetrics: PerformanceMetrics;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Organization' })
+  organizationId?: mongoose.Schema.Types.ObjectId;
 }
 
 export const TelecallerSchema = SchemaFactory.createForClass(Telecaller);
