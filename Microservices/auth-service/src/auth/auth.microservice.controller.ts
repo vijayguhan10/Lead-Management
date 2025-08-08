@@ -48,7 +48,6 @@ export class AuthMicroserviceController {
 
       return { hasRole, role: user.role };
     } catch (error) {
-      console.log("Error checking role:", error);
       return {
         hasRole: false,
         error: error.message,
