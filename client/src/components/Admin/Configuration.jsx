@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 export default function OnboardConfig() {
   const [form, setForm] = useState({
@@ -11,7 +12,9 @@ export default function OnboardConfig() {
     adminPhone: "",
     adminPassword: "",
     telecallers: 1,
-    telecallerDetails: [{ name: "", email: "", phone: "", role: "Telecaller", status: "" }],
+    telecallerDetails: [
+      { name: "", email: "", phone: "", role: "Telecaller", status: "" },
+    ],
     exotel: {
       virtualNumbers: 1,
       balance: "",
@@ -54,9 +57,63 @@ export default function OnboardConfig() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Organization configured! (Demo)");
+    const payload = {
+      orgName: form.orgName,
+      orgAddress: form.orgAddress,
+      language: form.language,
+      timezone: form.timezone,
+      admin: {
+        name: form.adminName,
+        email: form.adminEmail,
+        phone: form.adminPhone,
+        password: form.adminPassword,
+      },
+      telecallers: form.telecallerDetails.map((tc) => ({
+        name: tc.name,
+        email: tc.email,
+        phone: tc.phone,
+        role: tc.role || "Telecaller",
+        status: tc.status || "available",
+      })),
+      exotel: {
+        virtualNumbers: form.exotel.virtualNumbers,
+        balance: form.exotel.balance,
+        callVolume: form.exotel.callVolume,
+        activeNumbers: form.exotel.activeNumbers,
+        callDuration: form.exotel.callDuration,
+      },
+      whatsapp: {
+        numbers: form.whatsapp.numbers,
+        messageVolume: form.whatsapp.messageVolume,
+      },
+      cloud: {
+        totalStorage: form.cloud.totalStorage,
+        defaultstorage: form.cloud.defaultstorage,
+        storageurl: form.cloud.storageurl,
+      },
+      plan: form.plan,
+    };
+
+    try {
+      const token = localStorage.getItem("jwt_token");
+      const baseUrl =
+        import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:3001";
+      await axios.post(`${baseUrl}/organizations`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      alert("Organization created successfully!");
+    } catch (error) {
+      console.log(error);
+      alert(
+        error.response?.data?.message ||
+          "Failed to create organization. Please check your input and try again."
+      );
+    }
   };
 
   return (
@@ -143,136 +200,160 @@ export default function OnboardConfig() {
               Telecaller Setup
             </h2>
             <div className="mb-4 flex gap-4 items-center">
-              <label className="font-medium">Number of Telecallers:</label>
+              <label className="font-medium" htmlFor="telecallers-input">
+                Number of Telecallers:
+              </label>
               <input
+                id="telecallers-input"
                 name="telecallers"
                 type="number"
                 min={1}
                 value={form.telecallers}
                 onChange={(e) => {
                   const count = Math.max(1, Number(e.target.value));
-                  setForm((f) => ({
-                    ...f,
-                    telecallers: count,
-                    telecallerDetails: Array(count)
-                      .fill()
-                      .map(
-                        (_, i) =>
-                          f.telecallerDetails[i] || {
-                            name: "",
-                            email: "",
-                            phone: "",
-                            role: "Telecaller",
-                          }
-                      ),
-                  }));
+                  setForm((f) => {
+                    let telecallerDetails = f.telecallerDetails.slice();
+                    if (count > telecallerDetails.length) {
+                      // Add new telecallers
+                      for (let i = telecallerDetails.length; i < count; i++) {
+                        telecallerDetails.push({
+                          name: "",
+                          email: "",
+                          phone: "",
+                          role: "Telecaller",
+                        });
+                      }
+                    } else if (count < telecallerDetails.length) {
+                      // Remove extra telecallers
+                      telecallerDetails = telecallerDetails.slice(0, count);
+                    }
+                    return {
+                      ...f,
+                      telecallers: count,
+                      telecallerDetails,
+                    };
+                  });
                   setOpenTelecaller(null); // Reset open state when count changes
                 }}
                 className="input w-24"
               />
             </div>
             <div className="space-y-2">
-              {form.telecallerDetails.map((tc, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-50 rounded-lg shadow border mb-2"
-                >
-                  <button
-                    type="button"
-                    className={`w-full flex justify-between items-center px-4 py-3 font-semibold text-blue-700 focus:outline-none`}
-                    onClick={() =>
-                      setOpenTelecaller(openTelecaller === idx ? null : idx)
-                    }
+              {form.telecallerDetails.map((tc, idx) => {
+                return (
+                  <div
+                    key={idx}
+                    className="bg-gray-50 rounded-lg shadow border mb-2"
                   >
-                    <span>Telecaller #{idx + 1}</span>
-                    <span>
-                      {openTelecaller === idx ? (
-                        <svg width="20" height="20" fill="none">
-                          <path
-                            d="M6 8l4 4 4-4"
-                            stroke="#3b82f6"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      ) : (
-                        <svg width="20" height="20" fill="none">
-                          <path
-                            d="M6 12l4-4 4 4"
-                            stroke="#3b82f6"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
-                    </span>
-                  </button>
-                  {openTelecaller === idx && (
-                    <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input
-                        name={`telecallerDetails[${idx}].name`}
-                        value={tc.name}
-                        onChange={(e) => {
-                          const updated = [...form.telecallerDetails];
-                          updated[idx].name = e.target.value;
-                          setForm((f) => ({
-                            ...f,
-                            telecallerDetails: updated,
-                          }));
-                        }}
-                        placeholder="Name"
-                        className="text-sm input"
-                      />
-                      <input
-                        name={`telecallerDetails[${idx}].email`}
-                        value={tc.email}
-                        onChange={(e) => {
-                          const updated = [...form.telecallerDetails];
-                          updated[idx].email = e.target.value;
-                          setForm((f) => ({
-                            ...f,
-                            telecallerDetails: updated,
-                          }));
-                        }}
-                        placeholder="Email"
-                        className="text-sm input"
-                      />
-                      <input
-                        name={`telecallerDetails[${idx}].phone`}
-                        value={tc.phone}
-                        onChange={(e) => {
-                          const updated = [...form.telecallerDetails];
-                          updated[idx].phone = e.target.value;
-                          setForm((f) => ({
-                            ...f,
-                            telecallerDetails: updated,
-                          }));
-                        }}
-                        placeholder="Phone"
-                        className="text-sm input"
-                      />
-                      <select
-                        name={`telecallerDetails[${idx}].role`}
-                        value={tc.role}
-                        onChange={(e) => {
-                          const updated = [...form.telecallerDetails];
-                          updated[idx].role = e.target.value;
-                          setForm((f) => ({
-                            ...f,
-                            telecallerDetails: updated,
-                          }));
-                        }}
-                        className="text-sm input"
-                      >
-                        <option value="Telecaller">Telecaller</option>
-                        <option value="Supervisor">Supervisor</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      className={`w-full flex justify-between items-center px-4 py-3 font-semibold text-blue-700 focus:outline-none`}
+                      onClick={() =>
+                        setOpenTelecaller(openTelecaller === idx ? null : idx)
+                      }
+                    >
+                      <span>Telecaller #{idx + 1}</span>
+                      <span>
+                        {openTelecaller === idx ? (
+                          <svg width="20" height="20" fill="none">
+                            <path
+                              d="M6 8l4 4 4-4"
+                              stroke="#3b82f6"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" fill="none">
+                            <path
+                              d="M6 12l4-4 4 4"
+                              stroke="#3b82f6"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                    </button>
+                    {openTelecaller === idx && (
+                      <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          name={`telecallerDetails[${idx}].name`}
+                          value={tc.name}
+                          onChange={(e) => {
+                            setForm((f) => {
+                              const telecallerDetails =
+                                f.telecallerDetails.slice();
+                              telecallerDetails[idx] = {
+                                ...telecallerDetails[idx],
+                                name: e.target.value,
+                              };
+                              return { ...f, telecallerDetails };
+                            });
+                          }}
+                          placeholder="Name"
+                          className="text-sm input"
+                        />
+                        <input
+                          name={`telecallerDetails[${idx}].email`}
+                          value={tc.email}
+                          onChange={(e) => {
+                            setForm((f) => {
+                              const telecallerDetails =
+                                f.telecallerDetails.slice();
+                              telecallerDetails[idx] = {
+                                ...telecallerDetails[idx],
+                                email: e.target.value,
+                              };
+                              return { ...f, telecallerDetails };
+                            });
+                          }}
+                          placeholder="Email"
+                          className="text-sm input"
+                        />
+                        <input
+                          name={`telecallerDetails[${idx}].phone`}
+                          value={tc.phone}
+                          onChange={(e) => {
+                            setForm((f) => {
+                              const telecallerDetails =
+                                f.telecallerDetails.slice();
+                              telecallerDetails[idx] = {
+                                ...telecallerDetails[idx],
+                                phone: e.target.value,
+                              };
+                              return { ...f, telecallerDetails };
+                            });
+                          }}
+                          placeholder="Phone"
+                          className="text-sm input"
+                        />
+                        <select
+                          name={`telecallerDetails[${idx}].role`}
+                          value={tc.role}
+                          onChange={(e) => {
+                            setForm((f) => {
+                              const telecallerDetails =
+                                f.telecallerDetails.slice();
+                              telecallerDetails[idx] = {
+                                ...telecallerDetails[idx],
+                                role: e.target.value,
+                              };
+                              return { ...f, telecallerDetails };
+                            });
+                          }}
+                          className="text-sm input"
+                        >
+                          <option value="Telecaller">Telecaller</option>
+                          <option value="Supervisor">Supervisor</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
