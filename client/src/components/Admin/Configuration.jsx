@@ -28,8 +28,8 @@ export default function OnboardConfig() {
     },
     cloud: {
       totalStorage: "",
-      defaultstorage: "",
-      storageurl: "",
+      defaultStorage: "",
+      storageUrl: "",
     },
 
     inviteAdmins: "",
@@ -90,8 +90,8 @@ export default function OnboardConfig() {
       },
       cloud: {
         totalStorage: form.cloud.totalStorage,
-        defaultstorage: form.cloud.defaultstorage,
-        storageurl: form.cloud.storageurl,
+        defaultStorage: form.cloud.defaultStorage,
+        storageUrl: form.cloud.storageUrl,
       },
       plan: form.plan,
     };
@@ -99,7 +99,7 @@ export default function OnboardConfig() {
     try {
       const token = localStorage.getItem("jwt_token");
       const baseUrl =
-        import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:3001";
+        import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:3007";
       await axios.post(`${baseUrl}/organizations`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -443,14 +443,14 @@ export default function OnboardConfig() {
             />
             <input
               name="cloud.defaultstorage"
-              value={form.cloud.defaultstorage}
+              value={form.cloud.defaultStorage}
               onChange={handleChange}
               placeholder="Default Storage (GB)"
               className="text-sm input"
             />
             <input
               name="cloud.storageurl"
-              value={form.cloud.storageurl}
+              value={form.cloud.storageUrl}
               onChange={handleChange}
               placeholder="Storage URL"
               className="text-sm input"
