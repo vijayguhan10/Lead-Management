@@ -18,4 +18,12 @@ export class AuthClient {
   async createUser(user: any) {
     return this.client.send({ cmd: 'create_user' }, user).toPromise();
   }
+
+  async validateUser(userId: string) {
+    return this.client.send({ cmd: 'validate_user' }, userId).toPromise();
+  }
+
+  async validateToken(token: string) {
+    return this.client.send({ cmd: 'validate_token' }, token).toPromise();
+  }
 }
