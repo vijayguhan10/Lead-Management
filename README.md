@@ -1,6 +1,6 @@
 # Lead Management System
 
-A comprehensive lead management system built with React frontend and NestJS microservices architecture.
+A comprehensive lead management system built with React frontend and NestJS microservices.
 
 ## 🏗️ Architecture
 
