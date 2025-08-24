@@ -159,6 +159,9 @@ const Lead = () => {
     }
   };
 
+  const [showTelecallerAssign, setShowTelecallerAssign] = useState(false);
+  const [telecallerLead, setTelecallerLead] = useState(null);
+
   return (
     <div className="p-8 min-h-screen  font-sans">
       {/* Top Cards */}
@@ -310,8 +313,8 @@ const Lead = () => {
                     <button
                       className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
                       onClick={() => {
-                        setAssignLead(lead);
-                        setShowIndividualAssign(true);
+                        setTelecallerLead(lead);
+                        setShowTelecallerAssign(true);
                       }}
                     >
                       Assign
@@ -488,6 +491,21 @@ const Lead = () => {
         <LeadDetailsPopup
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
+        />
+      )}
+      {showTelecallerAssign && telecallerLead && (
+        <TelecallerAssignInfo
+          lead={telecallerLead}
+          telecallers={[]} // Pass your telecaller list here
+          onAssign={() => {
+            setShowTelecallerAssign(false);
+            setTelecallerLead(null);
+            // Optionally refresh leads or show a toast
+          }}
+          onClose={() => {
+            setShowTelecallerAssign(false);
+            setTelecallerLead(null);
+          }}
         />
       )}
     </div>
