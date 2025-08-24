@@ -26,8 +26,6 @@ export enum LeadStatus {
   Dropped = 'Dropped',
 }
 
-
-
 export class LeadDto {
   @IsString()
   name: string;
@@ -37,6 +35,9 @@ export class LeadDto {
 
   @IsString()
   source: string;
+
+  @IsString()
+  organizationId?: string;
 
   @IsEnum(LeadPriority)
   @IsOptional()
@@ -110,7 +111,6 @@ export class LeadDto {
   @IsArray()
   @IsString({ each: true })
   attachments?: string[];
-
 
   @IsOptional()
   @IsNumber()
