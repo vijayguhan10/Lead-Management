@@ -17,7 +17,7 @@ export class AdminRoleGuard implements CanActivate {
     const result = await this.authClient.validateUser(user.userId);
     if (!result.isValid || !result.isActive)
       throw new ForbiddenException('Invalid or inactive user');
-    if (result.role !== 'admin')
+    if (result.role !== 'superadmin')
       throw new ForbiddenException('Only admin can access this resource');
     return true;
   }
