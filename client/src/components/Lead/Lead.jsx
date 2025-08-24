@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 
 import sampleData from "./sampleData";
+import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
 
@@ -296,9 +297,7 @@ const Lead = () => {
                 <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
                   {lead.email}
                 </td>
-                <td className="py-3 px-4 text-black border-b">
-                  {lead.phone}
-                </td>
+                <td className="py-3 px-4 text-black border-b">{lead.phone}</td>
                 <td className="py-3 px-4 text-gray-600 border-b">
                   {lead.source}
                 </td>
@@ -417,43 +416,15 @@ const Lead = () => {
         </div>
       )}
       {/* Individual Assign Popup */}
-      {showIndividualAssign && assignLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050] bg-opacity-40">
-          <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-            onClick={() => setShowIndividualAssign(false)}
-          >
-            &times;
-          </button>
-          <TelecallerAssignInfo
-            lead={assignLead}
-            telecallers={[
-              {
-                name: "Priya Sharma",
-                assignedThisMonth: 45,
-                completed: 38,
-                pending: 7,
-                avatar: "/avatars/priya.png",
-                luxuryLevel: "Diamond",
-                rating: 4.9,
-                target: 50,
-              },
-              {
-                name: "Rahul Verma",
-                assignedThisMonth: 38,
-                completed: 30,
-                pending: 8,
-                avatar: "/avatars/rahul.png",
-                luxuryLevel: "Platinum",
-                rating: 4.7,
-                target: 45,
-              },
-            ]}
-            onAssign={(telecaller) => {
-              setShowIndividualAssign(false);
-            }}
-          />
-        </div>
+      {showIndividualAssign && (
+        <AddLead
+          open={showIndividualAssign}
+          onClose={() => setShowIndividualAssign(false)}
+          onSubmit={(leadData) => {
+            // Handle the new lead data here (e.g., add to your leads array or send to backend)
+            setShowIndividualAssign(false);
+          }}
+        />
       )}
       {notesLead && (
         <div className="fixed bg-[#00000050] inset-0 z-50 flex items-center justify-center">
