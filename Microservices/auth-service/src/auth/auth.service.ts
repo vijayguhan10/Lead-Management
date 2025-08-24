@@ -44,7 +44,7 @@ export class AuthService {
   async login(
     identifier: string,
     password: string,
-  ): Promise<{ token: string; role: string; isActive: boolean }> {
+  ): Promise<{ token: string; role: string; isActive: boolean; organizationId: string }> {
     const user = await this.authModel
       .findOne({
         $or: [{ email: identifier }, { phoneNumber: identifier }],
@@ -68,6 +68,7 @@ export class AuthService {
       token,
       role: user.role,
       isActive: user.isActive,
+      organizationId: user.role == "admin" ? user.organizationId || "" : "",
     };
   }
 
