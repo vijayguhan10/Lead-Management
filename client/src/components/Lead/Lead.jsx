@@ -375,7 +375,6 @@ const Lead = () => {
       {/* Smart Assign Popup */}
       {showSmartAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050] bg-opacity-40">
-          <div className="p-8 rounded-2xl bg-white shadow-2xl border border-[#FFD700] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setShowSmartAssign(false)}
@@ -397,12 +396,11 @@ const Lead = () => {
               </button>
             </div>
           </div>
-        </div>
       )}
       {/* Individual Assign Popup */}
       {showIndividualAssign && assignLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050] bg-opacity-40">
-          <div className="p-8 rounded-2xl bg-white shadow-2xl border border-[#7C3AED] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
+          
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setShowIndividualAssign(false)}
@@ -432,13 +430,12 @@ const Lead = () => {
                   rating: 4.7,
                   target: 45,
                 },
-                // ...more telecallers
               ]}
               onAssign={(telecaller) => {
                 setShowIndividualAssign(false);
               }}
             />
-          </div>
+          
         </div>
       )}
       {notesLead && (
@@ -499,7 +496,6 @@ const Lead = () => {
         </div>
       )}
 
-      {/* Lead Details Popup */}
       {selectedLead && (
         <LeadDetailsPopup
           lead={selectedLead}
