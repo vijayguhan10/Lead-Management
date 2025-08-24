@@ -16,10 +16,9 @@ import {
 } from "react-icons/fa";
 
 import sampleData from "./sampleData";
+import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
-
-const COLORS = ["#7C3AED", "#F59E42", "#16A34A", "#4F46E5", "#FFD700"];
 
 const Lead = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -152,33 +151,39 @@ const Lead = () => {
   const [notesLead, setNotesLead] = useState(null);
   const [noteValue, setNoteValue] = useState("");
 
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // You can add logic here to parse the Excel file using a library like xlsx
+      alert(`Selected file: ${file.name}`);
+    }
+  };
+
   return (
-    <div className="p-8 min-h-screen bg-[#f6f8fb] font-luxury">
+    <div className="p-8 min-h-screen  font-sans">
       {/* Top Cards */}
       <div className="flex gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#e0e7ff] w-1/4">
-          <span className="text-2xl font-bold text-[#7C3AED]">
-            {totalLeads}
-          </span>
-          <span className="text-xs text-gray-500 mt-2">Total Leads</span>
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+          <span className="text-2xl font-bold text-[#222]">{totalLeads}</span>
+          <span className="text-xs text-[#222] mt-2">Total Leads</span>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#e0e7ff] w-1/4">
+        <div className="bg-[#E6F9E5] rounded-xl shadow p-6 flex flex-col items-center border border-[#B7EFC5] w-1/4">
           <span className="text-2xl font-bold text-[#16A34A]">
             {assignedLeads}
           </span>
-          <span className="text-xs text-gray-500 mt-2">Assigned</span>
+          <span className="text-xs text-[#222] mt-2">Assigned</span>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#e0e7ff] w-1/4">
-          <span className="text-2xl font-bold text-[#F59E42]">
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+          <span className="text-2xl font-bold text-[#FFD700]">
             {unassignedLeadsCount}
           </span>
-          <span className="text-xs text-gray-500 mt-2">Unassigned</span>
+          <span className="text-xs text-[#222] mt-2">Unassigned</span>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#e0e7ff] w-1/4">
-          <span className="text-2xl font-bold text-[#4F46E5]">
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+          <span className="text-2xl font-bold text-[#222]">
             {conversionRate}%
           </span>
-          <span className="text-xs text-gray-500 mt-2">Conversion Rate</span>
+          <span className="text-xs text-[#222] mt-2">Conversion Rate</span>
         </div>
       </div>
 
@@ -186,16 +191,31 @@ const Lead = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
           <button
-            className="px-4 py-2 bg-[#FFD700] text-[#4F46E5] rounded-lg shadow font-bold hover:bg-[#FDE68A] transition"
+            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
             onClick={bulkAssign}
           >
             Bulk Assign
           </button>
           <button
-            className="px-4 py-2 bg-[#4F46E5] text-white rounded-lg shadow font-bold hover:bg-[#7C3AED] transition flex items-center gap-2"
+            className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
             onClick={exportLeads}
           >
             <FaDownload /> Export
+          </button>
+          <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
+            <FaFileImport /> Import
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: "none" }}
+              onChange={handleImportExcel}
+            />
+          </label>
+          <button
+            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+            onClick={() => setShowIndividualAssign(true)}
+          >
+            Add Individual
           </button>
         </div>
         <div className="relative w-64">
@@ -204,19 +224,19 @@ const Lead = () => {
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-3 pl-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 pl-10 border border-[#FFD700] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] bg-[#FFFDEB] text-[#222]"
           />
-          <span className="absolute left-3 top-3 text-gray-400">
+          <span className="absolute left-3 top-3 text-[#FFD700]">
             <FaSearch />
           </span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow-xl border border-[#e0e7ff]">
+      <div className="overflow-x-auto bg-white rounded-xl text-black shadow-xl border border-[#F7E9A0]">
         <table className="min-w-full text-base">
           <thead>
-            <tr className="bg-[#f3f4f6] text-[#4F46E5]">
+            <tr className="] text-yellow-500]">
               <th className="py-3 px-4 text-left font-semibold border-b">
                 <input
                   type="checkbox"
@@ -260,9 +280,9 @@ const Lead = () => {
             {currentLeads.map((lead, idx) => (
               <tr
                 key={lead.email}
-                className={`transition ${
-                  idx % 2 === 0 ? "bg-white" : "bg-[#f9fafb]"
-                } hover:bg-[#eef2f7]`}
+                className={`transition 
+                
+                 hover:bg-[#E6F9E5]`}
               >
                 <td className="py-3 px-4 border-b">
                   <input
@@ -274,23 +294,21 @@ const Lead = () => {
                 <td className="py-3 px-4 font-medium text-blue-700 border-b hover:underline cursor-pointer">
                   {lead.name}
                 </td>
-                <td className="py-3 px-4 text-blue-600 border-b hover:underline cursor-pointer">
+                <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
                   {lead.email}
                 </td>
-                <td className="py-3 px-4 text-blue-600 border-b">
-                  {lead.phone}
-                </td>
+                <td className="py-3 px-4 text-black border-b">{lead.phone}</td>
                 <td className="py-3 px-4 text-gray-600 border-b">
                   {lead.source}
                 </td>
-                <td className="py-3 px-4 text-gray-600 border-b">
+                <td className="py-3 px-4 text-[#222] border-b">
                   {lead.assignedTelecallers ? (
-                    <span className="px-3 py-1 rounded-full bg-[#4F46E5] text-white font-semibold shadow">
+                    <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
                       {lead.assignedTelecallers}
                     </span>
                   ) : (
                     <button
-                      className="px-4 py-2 bg-[#FFD700] text-[#4F46E5] rounded-lg shadow font-semibold hover:bg-[#FDE68A] transition"
+                      className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
                       onClick={() => {
                         setAssignLead(lead);
                         setShowIndividualAssign(true);
@@ -300,14 +318,14 @@ const Lead = () => {
                     </button>
                   )}
                 </td>
-                <td className="py-3 px-4 text-gray-600 border-b">
+                <td className="py-3 px-4 text-[#222] border-b">
                   <span
                     className={`px-3 py-1 rounded-full font-semibold shadow ${
                       lead.status === "Qualified"
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-[#E6F9E5] text-[#16A34A]"
                         : lead.status === "Contacted"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-700"
+                        ? "bg-[#FFFDEB] text-[#FFD700]"
+                        : "bg-gray-100 text-[#222]"
                     }`}
                   >
                     {lead.status}
@@ -338,7 +356,7 @@ const Lead = () => {
         <button
           onClick={() => paginate(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-400 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow hover:bg-[#FFFDEB] disabled:opacity-50 flex items-center gap-2"
         >
           <FaArrowLeft /> Previous
         </button>
@@ -351,8 +369,8 @@ const Lead = () => {
                 onClick={() => paginate(index + 1)}
                 className={`px-3 py-1 rounded-lg shadow ${
                   currentPage === index + 1
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                    ? "bg-[#222] text-[#FFD700]"
+                    : "bg-[#FFFDEB] text-[#222] hover:bg-[#FFD700]"
                 }`}
               >
                 {index + 1}
@@ -365,7 +383,7 @@ const Lead = () => {
           disabled={
             currentPage === Math.ceil(filteredLeads.length / leadsPerPage)
           }
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-400 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow hover:bg-[#FFFDEB] disabled:opacity-50 flex items-center gap-2"
         >
           Next <FaArrowRight />
         </button>
@@ -374,72 +392,39 @@ const Lead = () => {
       {/* Popups (Smart Assign, Individual Assign, Lead Details) */}
       {/* Smart Assign Popup */}
       {showSmartAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="p-8 rounded-2xl bg-white shadow-2xl border border-[#FFD700] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050] bg-opacity-40">
+          <button
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            onClick={() => setShowSmartAssign(false)}
+          >
+            &times;
+          </button>
+          <h2 className="text-2xl font-bold text-[#7C3AED] mb-4 flex items-center gap-2">
+            <span className="luxury-icon">💎</span> Smart Assignment
+          </h2>
+          <div className="text-gray-700 mb-4">
+            Assign selected leads to telecallers using smart logic.
+          </div>
+          <div className="flex justify-end mt-8">
             <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              className="px-6 py-3 bg-[#FFD700] text-[#4F46E5] rounded-xl shadow-xl font-bold text-lg hover:bg-[#FDE68A] transition"
               onClick={() => setShowSmartAssign(false)}
             >
-              &times;
+              Confirm Smart Assign
             </button>
-            <h2 className="text-2xl font-bold text-[#7C3AED] mb-4 flex items-center gap-2">
-              <span className="luxury-icon">💎</span> Smart Assignment
-            </h2>
-            <div className="text-gray-700 mb-4">
-              Assign selected leads to telecallers using smart logic.
-            </div>
-            <div className="flex justify-end mt-8">
-              <button
-                className="px-6 py-3 bg-[#FFD700] text-[#4F46E5] rounded-xl shadow-xl font-bold text-lg hover:bg-[#FDE68A] transition"
-                onClick={() => setShowSmartAssign(false)}
-              >
-                Confirm Smart Assign
-              </button>
-            </div>
           </div>
         </div>
       )}
       {/* Individual Assign Popup */}
-      {showIndividualAssign && assignLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="p-8 rounded-2xl bg-white shadow-2xl border border-[#7C3AED] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-              onClick={() => setShowIndividualAssign(false)}
-            >
-              &times;
-            </button>
-            <TelecallerAssignInfo
-              lead={assignLead}
-              telecallers={[
-                {
-                  name: "Priya Sharma",
-                  assignedThisMonth: 45,
-                  completed: 38,
-                  pending: 7,
-                  avatar: "/avatars/priya.png",
-                  luxuryLevel: "Diamond",
-                  rating: 4.9,
-                  target: 50,
-                },
-                {
-                  name: "Rahul Verma",
-                  assignedThisMonth: 38,
-                  completed: 30,
-                  pending: 8,
-                  avatar: "/avatars/rahul.png",
-                  luxuryLevel: "Platinum",
-                  rating: 4.7,
-                  target: 45,
-                },
-                // ...more telecallers
-              ]}
-              onAssign={(telecaller) => {
-                setShowIndividualAssign(false);
-              }}
-            />
-          </div>
-        </div>
+      {showIndividualAssign && (
+        <AddLead
+          open={showIndividualAssign}
+          onClose={() => setShowIndividualAssign(false)}
+          onSubmit={(leadData) => {
+            // Handle the new lead data here (e.g., add to your leads array or send to backend)
+            setShowIndividualAssign(false);
+          }}
+        />
       )}
       {notesLead && (
         <div className="fixed bg-[#00000050] inset-0 z-50 flex items-center justify-center">
@@ -499,7 +484,6 @@ const Lead = () => {
         </div>
       )}
 
-      {/* Lead Details Popup */}
       {selectedLead && (
         <LeadDetailsPopup
           lead={selectedLead}
