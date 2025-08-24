@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Lead, LeadDocument, LeadStatus } from './schema/lead.schema';
 import { LeadDto } from './dto/lead.dto';
 import { TelecallerClient } from '../telecaller/telecaller.client';
@@ -33,10 +33,12 @@ export class LeadService {
     return createdLead.save();
   }
 
-  async findAll(query: any = {}): Promise<Lead[]> {
+  async findAllOrganizationLeads(query: any = {}, param: any = {}): Promise<Lead[]> {
     const { status, priority, assignedTo, source, createdAt, tags } = query;
+    const organizationId = param.organizationId;
     const filter: any = {};
 
+    filter.organizationId = new Types.ObjectId(organizationId);
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (assignedTo) filter.assignedTo = assignedTo;
