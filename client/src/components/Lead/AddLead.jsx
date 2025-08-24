@@ -1,25 +1,5 @@
 import React, { useState } from "react";
 
-const MANDATORY = ["name", "phone", "source", "priority", "status"];
-const OPTIONAL = [
-  "assignedTo",
-  "email",
-  "alternatePhone",
-  "company",
-  "position",
-  "industry",
-  "location",
-  "pincode",
-  "notes",
-  "lastContacted",
-  "nextFollowUp",
-  "interestedIn",
-  "tags",
-  "createdBy",
-  "attachments",
-  "conversionScore",
-];
-
 const LeadPriority = ["Low", "Medium", "High"];
 const LeadStatus = ["New", "Qualified", "Contacted", "Converted", "Pending"];
 
@@ -66,7 +46,7 @@ export default function AddLead({ onClose, onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Validate mandatory fields
-    for (let field of MANDATORY) {
+    for (let field of ["name", "phone", "source", "priority", "status"]) {
       if (!form[field]) {
         alert(`Please fill the mandatory field: ${field}`);
         return;
@@ -77,27 +57,26 @@ export default function AddLead({ onClose, onSubmit }) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#FFFDEB] flex flex-col items-center py-12 px-4">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
-          <h2 className="text-3xl font-extrabold text-[#222]">
-            Add Individual Lead
-          </h2>
-          <button
-            className="px-6 py-2 bg-[#FFD700] text-[#222] rounded-lg font-bold shadow hover:bg-[#FFFDEB] transition"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 bg-[#00000040] flex justify-center items-center overflow-y-auto">
+      <div className="my-10 bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-5xl mx-4 py-10 px-10 relative">
+        <button
+          className="absolute top-8 right-10 text-gray-500 hover:text-gray-700 text-3xl font-bold"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          &times;
+        </button>
+        <h2 className="text-3xl font-extrabold text-[#222] mb-10 text-center">
+          Add Individual Lead
+        </h2>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Mandatory Fields Card */}
-            <div className="bg-white rounded-2xl border border-[#FFD700] shadow p-8">
+            {/* Mandatory Fields */}
+            <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
               <h3 className="text-xl font-bold text-[#222] mb-6">
                 Mandatory Fields <span className="text-red-500">*</span>
               </h3>
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 gap-5">
                 <div>
                   <label className="font-semibold text-[#222]">
                     Name <span className="text-red-500">*</span>
@@ -175,12 +154,12 @@ export default function AddLead({ onClose, onSubmit }) {
                 </div>
               </div>
             </div>
-            {/* Optional Fields Card */}
-            <div className="bg-[#E6F9E5] rounded-2xl border border-[#16A34A] shadow p-8">
+            {/* Contact Details */}
+            <div className="bg-[#E6F9E5] rounded-xl border border-[#16A34A] shadow p-6 mb-2">
               <h3 className="text-xl font-bold text-[#222] mb-6">
-                Optional Fields
+                Contact Details
               </h3>
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 gap-5">
                 <input
                   name="assignedTo"
                   value={form.assignedTo}
@@ -202,6 +181,14 @@ export default function AddLead({ onClose, onSubmit }) {
                   placeholder="Alternate Phone"
                   className="input"
                 />
+              </div>
+            </div>
+            {/* Company Details */}
+            <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+              <h3 className="text-xl font-bold text-[#222] mb-6">
+                Company Details
+              </h3>
+              <div className="grid grid-cols-1 gap-5">
                 <input
                   name="company"
                   value={form.company}
@@ -237,6 +224,14 @@ export default function AddLead({ onClose, onSubmit }) {
                   placeholder="Pincode"
                   className="input"
                 />
+              </div>
+            </div>
+            {/* Lead Details */}
+            <div className="bg-[#E6F9E5] rounded-xl border border-[#16A34A] shadow p-6 mb-2">
+              <h3 className="text-xl font-bold text-[#222] mb-6">
+                Lead Details
+              </h3>
+              <div className="grid grid-cols-1 gap-5">
                 <input
                   name="notes"
                   value={form.notes}
@@ -244,6 +239,22 @@ export default function AddLead({ onClose, onSubmit }) {
                   placeholder="Notes"
                   className="input"
                 />
+                <input
+                  name="conversionScore"
+                  type="number"
+                  value={form.conversionScore}
+                  onChange={handleChange}
+                  placeholder="Conversion Score"
+                  className="input"
+                />
+              </div>
+            </div>
+            {/* Dates & Tags */}
+            <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+              <h3 className="text-xl font-bold text-[#222] mb-6">
+                Dates & Tags
+              </h3>
+              <div className="grid grid-cols-1 gap-5">
                 <input
                   name="lastContacted"
                   type="date"
@@ -300,18 +311,11 @@ export default function AddLead({ onClose, onSubmit }) {
                   placeholder="Attachments (comma separated)"
                   className="input"
                 />
-                <input
-                  name="conversionScore"
-                  type="number"
-                  value={form.conversionScore}
-                  onChange={handleChange}
-                  placeholder="Conversion Score"
-                  className="input"
-                />
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-4 mt-10">
+          {/* Buttons */}
+          <div className="flex justify-end gap-4 mt-8">
             <button
               type="button"
               className="px-8 py-3 bg-[#FFD700] text-[#222] rounded-lg font-bold shadow hover:bg-[#FFFDEB] transition"
@@ -327,6 +331,7 @@ export default function AddLead({ onClose, onSubmit }) {
             </button>
           </div>
         </form>
+        {/* Input Styles */}
         <style>{`
           .input {
             padding: 14px;
