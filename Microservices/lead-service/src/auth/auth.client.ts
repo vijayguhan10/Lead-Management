@@ -13,8 +13,8 @@ export class AuthClient {
     this.client = ClientProxyFactory.create({
       transport: Transport.TCP,
       options: {
-        host: 'localhost', // Change if your auth service runs elsewhere
-        port: 8000, // Change to your auth service port
+        host: '127.0.0.1', // Change if your auth service runs elsewhere
+        port: 8001, // Change to your auth service port
       },
     });
   }
