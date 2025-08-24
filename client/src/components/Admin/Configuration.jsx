@@ -99,7 +99,8 @@ export default function OnboardConfig() {
     try {
       const token = localStorage.getItem("jwt_token");
       const baseUrl =
-        import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:3007";
+        import.meta.env.VITE_USER_SERVICE_URL;
+        console.log("Base URL:", baseUrl); // Debug log
       await axios.post(`${baseUrl}/organizations`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -442,14 +443,14 @@ export default function OnboardConfig() {
               className="text-sm input"
             />
             <input
-              name="cloud.defaultstorage"
+              name="cloud.defaultStorage"
               value={form.cloud.defaultStorage}
               onChange={handleChange}
               placeholder="Default Storage (GB)"
               className="text-sm input"
             />
             <input
-              name="cloud.storageurl"
+              name="cloud.storageUrl"
               value={form.cloud.storageUrl}
               onChange={handleChange}
               placeholder="Storage URL"

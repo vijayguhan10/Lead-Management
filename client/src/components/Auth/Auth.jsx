@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
+import {jwtDecode} from "jwt-decode";
 
 function Auth() {
   const [showPassword, setShowPassword] = useState(false);
@@ -28,10 +31,32 @@ function Auth() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Dummy login: just navigate to admin-dashboard
-    navigate("/admin-dashboard");
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_AUTH_SERVICE_URL}/auth/login`,
+        {
+          identifier: formData.email,
+          password: formData.password,
+        }
+      );
+      const { token, role, isActive } = res.data;
+      localStorage.setItem("jwt_token", token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("isActive", isActive);
+
+      // Decode token and store payload if needed
+      const decoded = jwtDecode(token);
+      localStorage.setItem("user", JSON.stringify(decoded));
+
+      toast.success("Login successful!");
+      navigate("/admin-dashboard");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
+    }
   };
 
   return (
@@ -119,18 +144,24 @@ function Auth() {
                 <span className="text-gray-700 font-medium">Telecaller</span>
               </label>
             </div>
-              <button
+            <button
               type="submit"
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow"
             >
-            LogIn
+              LogIn
             </button>
 
             <div className="flex gap-4 mt-4">
-              <a href="/privacy-policy" className="text-sm text-gray-500 hover:underline">
+              <a
+                href="/privacy-policy"
+                className="text-sm text-gray-500 hover:underline"
+              >
                 Privacy Policy
               </a>
-              <a href="/terms-and-conditions" className="text-sm text-gray-500 hover:underline">
+              <a
+                href="/terms-and-conditions"
+                className="text-sm text-gray-500 hover:underline"
+              >
                 Terms and Conditions
               </a>
             </div>
