@@ -41,10 +41,11 @@ function Auth() {
           password: formData.password,
         }
       );
-      const { token, role, isActive } = res.data;
+      const { token, role, isActive ,organizationId} = res.data;
       localStorage.setItem("jwt_token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("isActive", isActive);
+      localStorage.setItem("organizationId", organizationId);
 
       // Decode token and store payload if needed
       const decoded = jwtDecode(token);
