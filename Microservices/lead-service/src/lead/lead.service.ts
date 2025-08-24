@@ -28,7 +28,7 @@ export class LeadService {
         `Lead with phone ${leadDto.phone} already exists`,
       );
     }
-
+    
     const createdLead = new this.leadModel(leadDto);
     return createdLead.save();
   }

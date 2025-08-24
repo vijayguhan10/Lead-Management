@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type LeadDocument = Lead & Document;
 
@@ -36,6 +36,9 @@ export class Lead {
     default: LeadPriority.Low,
   })
   priority: LeadPriority;
+
+  @Prop({ type: Types.ObjectId, ref: 'Organization' })
+  organizationId?: Types.ObjectId;
 
   @Prop({
     type: String,
