@@ -25,9 +25,9 @@ export class LeadController {
     return this.leadService.create(leadDto);
   }
 
-  @Get()
-  findAll(@Query() query): Promise<Lead[]> {
-    return this.leadService.findAll(query);
+  @Get('/getOrganizationLeads/:organizationId')
+  findAllOrganizationLeads(@Query() query, @Param() param): Promise<Lead[]> {
+    return this.leadService.findAllOrganizationLeads(query, param);
   }
 
   @Get(':id')
