@@ -1,21 +1,15 @@
-import React, { useState } from "react";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
-import { createEditor } from "slate";
+import React, { useState, useEffect } from "react";
 import {
   FaSearch,
-  FaSort,
-  FaEye,
   FaArrowLeft,
   FaArrowRight,
   FaDownload,
-  FaBell,
-  FaColumns,
-  FaCommentDots,
   FaFileImport,
+  FaEye,
+  FaCommentDots,
+  FaEdit,
 } from "react-icons/fa";
-
-import sampleData from "./sampleData";
+import axios from "axios";
 import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
@@ -24,42 +18,52 @@ const Lead = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [showIndividualAssign, setShowIndividualAssign] = useState(false);
-  const [assignLead, setAssignLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState([]);
-  const [showColumns, setShowColumns] = useState({
-    name: true,
-    email: true,
-    phone: true,
-    source: true,
-    priority: true,
-    status: true,
-    assignedTelecallers: true,
-    view: true,
-  });
-  const [showNotes, setShowNotes] = useState(false);
-  const [globalTab, setGlobalTab] = useState("Monthly");
+  const [showTelecallerAssign, setShowTelecallerAssign] = useState(false);
+  const [telecallerLead, setTelecallerLead] = useState(null);
+  const [editLead, setEditLead] = useState(null);
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const leadsPerPage = 6;
 
-  // Make some leads unassigned for demo
-  const leads = sampleData.map((lead, idx) =>
-    idx % 3 === 0 ? { ...lead, assignedTelecallers: "" } : lead
-  );
+  useEffect(() => {
+    const fetchLeads = async () => {
+      setLoading(true);
+      const organizationId = localStorage.getItem("organizationId");
+      const token = localStorage.getItem("jwt_token");
+      try {
+        const res = await axios.get(
+          `${
+            import.meta.env.VITE_LEAD_SERVICE_URL
+          }/leads/getOrganizationLeads/${organizationId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setLeads(res.data || []);
+      } catch (err) {
+        setLeads([]);
+      }
+      setLoading(false);
+    };
+    fetchLeads();
+  }, []);
 
-  // Analytics
   const totalLeads = leads.length;
-  const assignedLeads = leads.filter((l) => l.assignedTelecallers).length;
+  const assignedLeads = leads.filter((l) => l.assignedTo).length;
   const unassignedLeadsCount = totalLeads - assignedLeads;
   const conversionRate = totalLeads
     ? Math.round((assignedLeads / totalLeads) * 100)
     : 0;
 
-  // Filtering
   const filteredLeads = leads.filter(
     (lead) =>
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+      lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const indexOfLastLead = currentPage * leadsPerPage;
@@ -68,102 +72,29 @@ const Lead = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Only leads not assigned to telecallers
-  const unassignedLeads = currentLeads.filter(
-    (lead) => !lead.assignedTelecallers || lead.assignedTelecallers === ""
-  );
-
-  // Bulk select logic
-  const toggleLeadSelect = (email) => {
+  const toggleLeadSelect = (id) => {
     setSelectedLeads((prev) =>
-      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
     );
   };
 
-  // Export logic (stub)
   const exportLeads = () => {
     alert("Export to Excel/CSV coming soon!");
   };
 
-  // Bulk assign logic (stub)
   const bulkAssign = () => {
-    setShowSmartAssign(true);
+    alert("Bulk assign logic coming soon!");
   };
-
-  // Timeline/Activity log (stub)
-  const showTimeline = (lead) => {
-    alert(`Show timeline for ${lead.name}`);
-  };
-
-  // Notes/comments (stub)
-  const addNote = (lead) => {
-    alert(`Add note for ${lead.name}`);
-  };
-
-  // Chart Data
-  const sourceData = [
-    {
-      name: "Referral",
-      value: leads.filter((l) => l.source === "Referral").length,
-    },
-    {
-      name: "Website",
-      value: leads.filter((l) => l.source === "Website").length,
-    },
-    { name: "Other", value: leads.filter((l) => l.source === "Other").length },
-  ];
-  const priorityData = [
-    { name: "High", value: leads.filter((l) => l.priority === "High").length },
-    {
-      name: "Medium",
-      value: leads.filter((l) => l.priority === "Medium").length,
-    },
-    { name: "Low", value: leads.filter((l) => l.priority === "Low").length },
-  ];
-  const statusData = [
-    { name: "New", value: leads.filter((l) => l.status === "New").length },
-    {
-      name: "Contacted",
-      value: leads.filter((l) => l.status === "Contacted").length,
-    },
-    {
-      name: "Closed",
-      value: leads.filter((l) => l.status === "Closed").length,
-    },
-  ];
-
-  // Tab logic for analytics (stub, you can connect to backend for real data)
-  const getTabLeads = () => {
-    // For demo, just return all leads
-    return {
-      totalLeads,
-      assignedLeads,
-      unassignedLeadsCount,
-      conversionRate,
-      sourceData,
-      priorityData,
-      statusData,
-    };
-  };
-  const tabLeads = getTabLeads();
-
-  // Slate editor state for notes
-  const [notesLead, setNotesLead] = useState(null);
-  const [noteValue, setNoteValue] = useState("");
 
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // You can add logic here to parse the Excel file using a library like xlsx
       alert(`Selected file: ${file.name}`);
     }
   };
 
-  const [showTelecallerAssign, setShowTelecallerAssign] = useState(false);
-  const [telecallerLead, setTelecallerLead] = useState(null);
-
   return (
-    <div className="p-8 min-h-screen  font-sans">
+    <div className="p-8 min-h-screen font-sans">
       {/* Top Cards */}
       <div className="flex gap-6 mb-8">
         <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
@@ -239,7 +170,7 @@ const Lead = () => {
       <div className="overflow-x-auto bg-white rounded-xl text-black shadow-xl border border-[#F7E9A0]">
         <table className="min-w-full text-base">
           <thead>
-            <tr className="] text-yellow-500]">
+            <tr>
               <th className="py-3 px-4 text-left font-semibold border-b">
                 <input
                   type="checkbox"
@@ -248,7 +179,7 @@ const Lead = () => {
                     setSelectedLeads(
                       selectedLeads.length === currentLeads.length
                         ? []
-                        : currentLeads.map((l) => l.email)
+                        : currentLeads.map((l) => l._id)
                     )
                   }
                 />
@@ -280,76 +211,93 @@ const Lead = () => {
             </tr>
           </thead>
           <tbody>
-            {currentLeads.map((lead, idx) => (
-              <tr
-                key={lead.email}
-                className={`transition 
-                
-                 hover:bg-[#E6F9E5]`}
-              >
-                <td className="py-3 px-4 border-b">
-                  <input
-                    type="checkbox"
-                    checked={selectedLeads.includes(lead.email)}
-                    onChange={() => toggleLeadSelect(lead.email)}
-                  />
-                </td>
-                <td className="py-3 px-4 font-medium text-blue-700 border-b hover:underline cursor-pointer">
-                  {lead.name}
-                </td>
-                <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
-                  {lead.email}
-                </td>
-                <td className="py-3 px-4 text-black border-b">{lead.phone}</td>
-                <td className="py-3 px-4 text-gray-600 border-b">
-                  {lead.source}
-                </td>
-                <td className="py-3 px-4 text-[#222] border-b">
-                  {lead.assignedTelecallers ? (
-                    <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
-                      {lead.assignedTelecallers}
-                    </span>
-                  ) : (
-                    <button
-                      className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
-                      onClick={() => {
-                        setTelecallerLead(lead);
-                        setShowTelecallerAssign(true);
-                      }}
-                    >
-                      Assign
-                    </button>
-                  )}
-                </td>
-                <td className="py-3 px-4 text-[#222] border-b">
-                  <span
-                    className={`px-3 py-1 rounded-full font-semibold shadow ${
-                      lead.status === "Qualified"
-                        ? "bg-[#E6F9E5] text-[#16A34A]"
-                        : lead.status === "Contacted"
-                        ? "bg-[#FFFDEB] text-[#FFD700]"
-                        : "bg-gray-100 text-[#222]"
-                    }`}
-                  >
-                    {lead.status}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-gray-600 border-b">
-                  {lead.created || "Just now"}
-                </td>
-                <td className="py-3 px-4 border-b flex gap-2">
-                  <FaEye
-                    className="text-blue-500 hover:text-blue-700 cursor-pointer"
-                    onClick={() => setSelectedLead(lead)}
-                  />
-                  <FaCommentDots
-                    className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
-                    title="Add/View Notes"
-                    onClick={() => setNotesLead(lead)}
-                  />
+            {loading ? (
+              <tr>
+                <td colSpan={9} className="text-center py-8 text-gray-500">
+                  Loading leads...
                 </td>
               </tr>
-            ))}
+            ) : currentLeads.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center py-8 text-gray-500">
+                  No leads found.
+                </td>
+              </tr>
+            ) : (
+              currentLeads.map((lead) => (
+                <tr key={lead._id} className="transition hover:bg-[#E6F9E5]">
+                  <td className="py-3 px-4 border-b">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeads.includes(lead._id)}
+                      onChange={() => toggleLeadSelect(lead._id)}
+                    />
+                  </td>
+                  <td className="py-3 px-4 font-medium text-blue-700 border-b hover:underline cursor-pointer">
+                    {lead.name}
+                  </td>
+                  <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
+                    {lead.email}
+                  </td>
+                  <td className="py-3 px-4 text-black border-b">
+                    {lead.phone}
+                  </td>
+                  <td className="py-3 px-4 text-gray-600 border-b">
+                    {lead.source}
+                  </td>
+                  <td className="py-3 px-4 text-[#222] border-b">
+                    {lead.assignedTo ? (
+                      <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
+                        {lead.assignedTo}
+                      </span>
+                    ) : (
+                      <button
+                        className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
+                        onClick={() => {
+                          setTelecallerLead(lead);
+                          setShowTelecallerAssign(true);
+                        }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-[#222] border-b">
+                    <span
+                      className={`px-3 py-1 rounded-full font-semibold shadow ${
+                        lead.status === "Qualified"
+                          ? "bg-[#E6F9E5] text-[#16A34A]"
+                          : lead.status === "Contacted"
+                          ? "bg-[#FFFDEB] text-[#FFD700]"
+                          : "bg-gray-100 text-[#222]"
+                      }`}
+                    >
+                      {lead.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600 border-b">
+                    {lead.createdAt
+                      ? new Date(lead.createdAt).toLocaleDateString()
+                      : "Just now"}
+                  </td>
+                  <td className="py-3 px-4 border-b flex gap-2">
+                    <FaEye
+                      className="text-blue-500 hover:text-blue-700 cursor-pointer"
+                      onClick={() => setSelectedLead(lead)}
+                    />
+                    <FaEdit
+                      className="text-green-500 hover:text-green-700 cursor-pointer"
+                      title="Edit Lead"
+                      onClick={() => setEditLead(lead)}
+                    />
+                    <FaCommentDots
+                      className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
+                      title="Add/View Notes"
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -392,101 +340,14 @@ const Lead = () => {
         </button>
       </div>
 
-      {/* Popups (Smart Assign, Individual Assign, Lead Details) */}
-      {/* Smart Assign Popup */}
-      {showSmartAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050] bg-opacity-40">
-          <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-            onClick={() => setShowSmartAssign(false)}
-          >
-            &times;
-          </button>
-          <h2 className="text-2xl font-bold text-[#7C3AED] mb-4 flex items-center gap-2">
-            <span className="luxury-icon">💎</span> Smart Assignment
-          </h2>
-          <div className="text-gray-700 mb-4">
-            Assign selected leads to telecallers using smart logic.
-          </div>
-          <div className="flex justify-end mt-8">
-            <button
-              className="px-6 py-3 bg-[#FFD700] text-[#4F46E5] rounded-xl shadow-xl font-bold text-lg hover:bg-[#FDE68A] transition"
-              onClick={() => setShowSmartAssign(false)}
-            >
-              Confirm Smart Assign
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Individual Assign Popup */}
+      {/* Popups */}
       {showIndividualAssign && (
         <AddLead
           open={showIndividualAssign}
           onClose={() => setShowIndividualAssign(false)}
-          onSubmit={(leadData) => {
-            // Handle the new lead data here (e.g., add to your leads array or send to backend)
-            setShowIndividualAssign(false);
-          }}
+          onSubmit={() => setShowIndividualAssign(false)}
         />
       )}
-      {notesLead && (
-        <div className="fixed bg-[#00000050] inset-0 z-50 flex items-center justify-center">
-          <div className="p-0 rounded-2xl bg-white shadow-2xl border-2 border-[#FFD700] min-w-[350px] max-w-[90vw] w-full md:w-[600px] relative">
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-              onClick={() => setNotesLead(null)}
-              aria-label="Close"
-            >
-              &times;
-            </button>
-            <div className="flex items-center gap-3 px-8 pt-8 pb-2 border-b border-gray-200">
-              <FaCommentDots className="text-[#FFD700] text-3xl" />
-              <h2 className="text-2xl font-extrabold text-[#4F46E5]">
-                Notes for <span className="text-black">{notesLead.name}</span>
-              </h2>
-            </div>
-            <div className="mb-4 px-8 pt-4">
-              <ReactQuill
-                value={noteValue}
-                onChange={setNoteValue}
-                placeholder="Type your note here. You can format text, add lists, and links."
-                theme="snow"
-                className="bg-white rounded-xl border border-gray-300 shadow focus:ring-2 focus:ring-[#FFD700] min-h-[180px] text-base"
-                style={{
-                  fontFamily: "Inter, Arial, sans-serif",
-                  fontSize: "1.05rem",
-                  borderRadius: "16px",
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
-                  marginBottom: "0.5rem",
-                }}
-                modules={{
-                  toolbar: [
-                    [{ header: [1, 2, false] }],
-                    ["bold", "italic", "underline", "strike"],
-                    [{ color: [] }, { background: [] }],
-                    [{ list: "ordered" }, { list: "bullet" }],
-                    ["link", "image"],
-                    ["clean"],
-                  ],
-                }}
-              />
-            </div>
-            <div className="flex justify-end px-8 pb-8">
-              <button
-                className="px-7 py-3 bg-gradient-to-r from-[#FFD700] to-[#FDE68A] text-[#4F46E5] rounded-full shadow-xl font-bold text-lg hover:scale-105 transition"
-                onClick={() => {
-                  // Save note logic here
-                  setNotesLead(null);
-                  setNoteValue("");
-                }}
-              >
-                Add Note
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {selectedLead && (
         <LeadDetailsPopup
           lead={selectedLead}
@@ -494,18 +355,27 @@ const Lead = () => {
         />
       )}
       {showTelecallerAssign && telecallerLead && (
-        <TelecallerAssignInfo
-          lead={telecallerLead}
-          telecallers={[]} // Pass your telecaller list here
-          onAssign={() => {
-            setShowTelecallerAssign(false);
-            setTelecallerLead(null);
-            // Optionally refresh leads or show a toast
-          }}
-          onClose={() => {
-            setShowTelecallerAssign(false);
-            setTelecallerLead(null);
-          }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
+          <TelecallerAssignInfo
+            lead={telecallerLead}
+            telecallers={[]} // Pass your telecaller list here
+            onAssign={() => {
+              setShowTelecallerAssign(false);
+              setTelecallerLead(null);
+            }}
+            onClose={() => {
+              setShowTelecallerAssign(false);
+              setTelecallerLead(null);
+            }}
+          />
+        </div>
+      )}
+      {editLead && (
+        <AddLead
+          onClose={() => setEditLead(null)}
+          onSubmit={() => setEditLead(null)}
+          initialData={editLead}
+          isEdit={true}
         />
       )}
     </div>

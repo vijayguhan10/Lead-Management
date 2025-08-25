@@ -71,7 +71,6 @@ export class OrganizationService {
       }
       await this.telecallerClient.createTelecaller(telecallerDoc);
 
-      // Update the telecaller in organization with userId as _id
       updatedTelecallers.push({
         userId,
         name: tc.name,
