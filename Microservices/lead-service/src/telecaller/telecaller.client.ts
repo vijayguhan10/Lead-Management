@@ -15,7 +15,7 @@ export class TelecallerClient {
       transport: Transport.TCP,
       options: {
         host: 'localhost',
-        port: 8001,
+        port: 8006,
       },
     });
   }

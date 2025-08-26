@@ -135,12 +135,10 @@ const TelecallerAssignInfo = ({
     try {
       const leadId = lead?.id ?? lead?._id ?? lead;
       const telecallerId = selected?.id ?? selected?._id ?? selected;
-      // Use `executeLead` with endpoint override to perform the assign
       const res = await executeLead({
-        method: "POST",
+        method: "PATCH",
         endpoint: `/leads/${leadId}/assign/${telecallerId}`,
       });
-
       setAssigned({ telecaller: selected, at: new Date() });
       onAssign && onAssign(res || { leadId, telecallerId });
       toast.success("Telecaller assigned successfully.");
