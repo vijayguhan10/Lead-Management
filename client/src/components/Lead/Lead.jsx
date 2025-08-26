@@ -345,7 +345,10 @@ const Lead = () => {
         <AddLead
           open={showIndividualAssign}
           onClose={() => setShowIndividualAssign(false)}
-          onSubmit={() => setShowIndividualAssign(false)}
+          onSubmit={(createdLead) => {
+            setLeads((prev) => [...(prev || []), createdLead]);
+            setShowIndividualAssign(false);
+          }}
         />
       )}
       {selectedLead && (

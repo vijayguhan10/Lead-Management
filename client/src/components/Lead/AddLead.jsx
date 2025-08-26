@@ -75,7 +75,8 @@ export default function AddLead({ onClose, onSubmit }) {
         }
       );
       toast.success("Lead added successfully!");
-      onSubmit && onSubmit(payload);
+      const created = res?.data || payload;
+      onSubmit && onSubmit(created);
       onClose && onClose();
     } catch (err) {
       toast.error(
