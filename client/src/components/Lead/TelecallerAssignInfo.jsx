@@ -1,6 +1,17 @@
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
+import { toast } from "react-toastify";
+import { useApi } from "../../hooks/useApi";
 
-const Modal = ({ open, onClose, telecallers, onSelect, query, setQuery }) => {
+const Modal = ({
+  open,
+  onClose,
+  telecallers,
+  onSelect,
+  query,
+  setQuery,
+  loading,
+}) => {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
@@ -16,56 +27,64 @@ const Modal = ({ open, onClose, telecallers, onSelect, query, setQuery }) => {
           <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3 justify-center">
             Assign Telecaller
           </h2>
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search telecaller name, email or phone..."
-            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none mb-6 text-base"
-          />
-          <div className="h-64 overflow-y-auto mb-4 w-full">
-            <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
-              <tbody>
-                {telecallers.length === 0 ? (
-                  <tr>
-                    <td className="p-6 text-center text-gray-500">
-                      No telecallers found.
-                    </td>
-                  </tr>
-                ) : (
-                  telecallers.map((t, idx) => (
-                    <tr
-                      key={t.id || t._id || t.email || idx}
-                      className="transition bg-white hover:bg-indigo-50 border-b-2 border-gray-200 cursor-pointer"
-                      onClick={() => {
-                        onSelect(t);
-                        onClose();
-                        setQuery("");
-                      }}
-                    >
-                      <td className="py-5 px-4 font-bold text-indigo-700 text-lg whitespace-nowrap">
-                        {t.name}
-                      </td>
-                      <td className="py-5 px-4 text-gray-700 text-base whitespace-nowrap">
-                        {t.email || t.phone}
-                      </td>
-                      <td className="py-5 px-4 text-purple-600 font-semibold text-base whitespace-nowrap">
-                        {t.role || "Telecaller"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex justify-center mt-8 w-full">
-            <button
-              className="px-8 py-3 bg-gray-900 text-white rounded-full shadow font-bold text-lg hover:bg-gray-700 transition"
-              onClick={onClose}
-            >
-              Close
-            </button>
-          </div>
+          {loading ? (
+            <div className="w-full text-center py-8 text-gray-500">
+              Loading telecallers...
+            </div>
+          ) : (
+            <>
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search telecaller name, email or phone..."
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none mb-6 text-base"
+              />
+              <div className="h-64 overflow-y-auto mb-4 w-full">
+                <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
+                  <tbody>
+                    {telecallers.length === 0 ? (
+                      <tr>
+                        <td className="p-6 text-center text-gray-500">
+                          No telecallers found.
+                        </td>
+                      </tr>
+                    ) : (
+                      telecallers.map((t, idx) => (
+                        <tr
+                          key={t.id || t._id || t.email || idx}
+                          className="transition bg-white hover:bg-indigo-50 border-b-2 border-gray-200 cursor-pointer"
+                          onClick={() => {
+                            onSelect(t);
+                            onClose();
+                            setQuery("");
+                          }}
+                        >
+                          <td className="py-5 px-4 font-bold text-indigo-700 text-lg whitespace-nowrap">
+                            {t.name}
+                          </td>
+                          <td className="py-5 px-4 text-gray-700 text-base whitespace-nowrap">
+                            {t.email || t.phone}
+                          </td>
+                          <td className="py-5 px-4 text-purple-600 font-semibold text-base whitespace-nowrap">
+                            {t.role || "Telecaller"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-center mt-8 w-full">
+                <button
+                  className="px-8 py-3 bg-gray-900 text-white rounded-full shadow font-bold text-lg hover:bg-gray-700 transition"
+                  onClick={onClose}
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -84,30 +103,66 @@ const TelecallerAssignInfo = ({
   const [loading, setLoading] = useState(false);
   const [assigned, setAssigned] = useState(null);
 
+  // fetch telecallers if not provided via props
+  const { data: apiTelecallers, loading: apiLoading } = useApi(
+    "telecaller",
+    "/telecallers"
+  );
+
+  const { execute: executeLead } = useApi("lead", "/", { manual: true });
+
+  // If the API returns an empty array, the Modal will show "No telecallers found.".
+  const telecallerList = useMemo(() => {
+    if (!apiTelecallers || !Array.isArray(apiTelecallers)) return [];
+    return apiTelecallers;
+  }, [apiTelecallers]);
+
   const filtered = useMemo(() => {
-    if (!query) return telecallers;
+    const source = telecallerList || [];
+    if (!query) return source;
     const q = query.toLowerCase();
-    return telecallers.filter(
+    return source.filter(
       (t) =>
         (t.name && t.name.toLowerCase().includes(q)) ||
         (t.email && t.email.toLowerCase().includes(q)) ||
         (t.phone && t.phone.toLowerCase().includes(q))
     );
-  }, [telecallers, query]);
+  }, [telecallerList, query]);
 
   const handleAssign = async () => {
     if (!selected) return;
     setLoading(true);
     try {
-      await Promise.resolve(onAssign?.(lead?.id ?? lead, selected));
+      const leadId = lead?.id ?? lead?._id ?? lead;
+      const telecallerId = selected?.id ?? selected?._id ?? selected;
+      // Use `executeLead` with endpoint override to perform the assign
+      const res = await executeLead({
+        method: "POST",
+        endpoint: `/leads/${leadId}/assign/${telecallerId}`,
+      });
+
       setAssigned({ telecaller: selected, at: new Date() });
+      onAssign && onAssign(res || { leadId, telecallerId });
       setModalOpen(false);
+      toast.success("Telecaller assigned successfully.");
     } catch (err) {
       console.error(err);
+      toast.error(
+        err?.response?.data?.message || "Failed to assign telecaller."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  let assignButtonLabel;
+  if (loading) {
+    assignButtonLabel = "Assigning...";
+  } else if (assigned) {
+    assignButtonLabel = "Reassign";
+  } else {
+    assignButtonLabel = "Assign";
+  }
 
   return (
     <div className="w-full max-w-3xl mx-auto relative">
@@ -121,7 +176,7 @@ const TelecallerAssignInfo = ({
           >
             &times;
           </button>
-          <div className="flex flex-col gap-8">
+          <div className="flex pt-3.5 flex-col gap-8">
             <div className="rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-purple-50 shadow-lg border border-gray-100 p-8">
               <h3 className="text-3xl font-extrabold text-indigo-800 mb-2 tracking-tight">
                 {lead?.name || lead?.company || "Untitled Lead"}
@@ -191,11 +246,7 @@ const TelecallerAssignInfo = ({
                         : "bg-gray-100 text-gray-400 cursor-not-allowed"
                     }`}
                   >
-                    {loading
-                      ? "Assigning..."
-                      : assigned
-                      ? "Reassign"
-                      : "Assign"}
+                    {assignButtonLabel}
                   </button>
                 </div>
               </div>
@@ -210,9 +261,27 @@ const TelecallerAssignInfo = ({
         onSelect={setSelected}
         query={query}
         setQuery={setQuery}
+        loading={apiLoading}
       />
     </div>
   );
 };
 
 export default TelecallerAssignInfo;
+
+Modal.propTypes = {
+  open: PropTypes.bool,
+  onClose: PropTypes.func,
+  telecallers: PropTypes.arrayOf(PropTypes.object),
+  onSelect: PropTypes.func,
+  query: PropTypes.string,
+  setQuery: PropTypes.func,
+  loading: PropTypes.bool,
+};
+
+TelecallerAssignInfo.propTypes = {
+  lead: PropTypes.object,
+  telecallers: PropTypes.arrayOf(PropTypes.object),
+  onAssign: PropTypes.func,
+  onClose: PropTypes.func,
+};
