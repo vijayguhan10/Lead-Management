@@ -280,20 +280,22 @@ const Lead = () => {
                       ? new Date(lead.createdAt).toLocaleDateString()
                       : "Just now"}
                   </td>
-                  <td className="py-3 px-4 border-b flex gap-2">
-                    <FaEye
-                      className="text-blue-500 hover:text-blue-700 cursor-pointer"
-                      onClick={() => setSelectedLead(lead)}
-                    />
-                    <FaEdit
-                      className="text-green-500 hover:text-green-700 cursor-pointer"
-                      title="Edit Lead"
-                      onClick={() => setEditLead(lead)}
-                    />
-                    <FaCommentDots
-                      className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
-                      title="Add/View Notes"
-                    />
+                  <td className="py-3 px-4 border-b">
+                    <div className="flex gap-2 items-center">
+                      <FaEye
+                        className="text-blue-500 hover:text-blue-700 cursor-pointer"
+                        onClick={() => setSelectedLead(lead)}
+                      />
+                      <FaEdit
+                        className="text-green-500 hover:text-green-700 cursor-pointer"
+                        title="Edit Lead"
+                        onClick={() => setEditLead(lead)}
+                      />
+                      <FaCommentDots
+                        className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
+                        title="Add/View Notes"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -345,7 +347,10 @@ const Lead = () => {
         <AddLead
           open={showIndividualAssign}
           onClose={() => setShowIndividualAssign(false)}
-          onSubmit={() => setShowIndividualAssign(false)}
+          onSubmit={(createdLead) => {
+            setLeads((prev) => [...(prev || []), createdLead]);
+            setShowIndividualAssign(false);
+          }}
         />
       )}
       {selectedLead && (
