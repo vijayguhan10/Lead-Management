@@ -19,7 +19,7 @@ export const useApi = (serviceName, endpoint, options = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const makeRequest = async () => {
+  const makeRequest = async (overrides = {}) => {
     try {
       setLoading(true);
       setError(null);
@@ -29,20 +29,31 @@ export const useApi = (serviceName, endpoint, options = {}) => {
         throw new Error(`Unknown service: ${serviceName}`);
       }
 
-      const token = localStorage.getItem("jwt_token");
-      const headers = {
+      const mergedHeaders = {
         "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(localStorage.getItem("jwt_token") && {
+          Authorization: `Bearer ${localStorage.getItem("jwt_token")}`,
+        }),
         ...options.headers,
+        ...(overrides.headers || {}),
       };
 
+      const resolvedMethod = overrides.method || options.method || "GET";
+      const resolvedData =
+        overrides.data !== undefined ? overrides.data : options.data;
+      const resolvedParams =
+        overrides.params !== undefined ? overrides.params : options.params;
+      const resolvedTimeout = overrides.timeout || options.timeout || 10000;
+      const resolvedEndpoint =
+        overrides.endpoint !== undefined ? overrides.endpoint : endpoint;
+
       const response = await axios({
-        method: options.method || "GET",
-        url: `${baseURL}${endpoint}`,
-        data: options.data,
-        params: options.params,
-        headers,
-        timeout: 10000,
+        method: resolvedMethod,
+        url: `${baseURL}${resolvedEndpoint}`,
+        data: resolvedData,
+        params: resolvedParams,
+        headers: mergedHeaders,
+        timeout: resolvedTimeout,
       });
 
       setData(response.data);
@@ -89,10 +100,14 @@ export const useApi = (serviceName, endpoint, options = {}) => {
   };
 
   useEffect(() => {
-    makeRequest();
+    if (!options.manual) makeRequest();
   }, [serviceName, endpoint, JSON.stringify(options)]);
 
-  const refetch = () => makeRequest();
+  const refetch = (overrides = {}) => makeRequest(overrides);
 
-  return { data, loading, error, refetch };
+  const execute = async (overrides = {}) => {
+    return await makeRequest(overrides);
+  };
+
+  return { data, loading, error, refetch, execute };
 };
