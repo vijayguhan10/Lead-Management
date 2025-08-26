@@ -177,8 +177,13 @@ function App() {
           }
         }}
       />
-  {/* Toast container for react-toastify */}
-  <ToastContainer position="top-right" newestOnTop closeOnClick pauseOnHover />
+      {/* Toast container for react-toastify */}
+      <ToastContainer
+        position="top-right"
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+      />
     </div>
   );
 }

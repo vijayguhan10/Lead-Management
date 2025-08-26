@@ -94,15 +94,19 @@ export const useApi = (serviceName, endpoint, options = {}) => {
         errorObj.message = err.message || "Unexpected error occurred";
       }
 
-  setError(errorObj);
-  throw errorObj;
+      setError(errorObj);
+      throw errorObj;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!options.manual) makeRequest();
+    if (!options.manual) {
+      // call and swallow errors here; makeRequest sets `error` state and throws for
+      // imperative callers, but we don't want unhandled rejections for the auto-fetch
+      makeRequest().catch(() => {});
+    }
   }, [serviceName, endpoint, JSON.stringify(options)]);
 
   const refetch = (overrides = {}) => makeRequest(overrides);
