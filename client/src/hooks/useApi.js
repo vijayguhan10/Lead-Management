@@ -57,6 +57,7 @@ export const useApi = (serviceName, endpoint, options = {}) => {
       });
 
       setData(response.data);
+      return response.data;
     } catch (err) {
       console.error(`API Error (${serviceName}${endpoint}):`, err);
 
@@ -94,13 +95,18 @@ export const useApi = (serviceName, endpoint, options = {}) => {
       }
 
       setError(errorObj);
+      throw errorObj;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!options.manual) makeRequest();
+    if (!options.manual) {
+      // call and swallow errors here; makeRequest sets `error` state and throws for
+      // imperative callers, but we don't want unhandled rejections for the auto-fetch
+      makeRequest().catch(() => {});
+    }
   }, [serviceName, endpoint, JSON.stringify(options)]);
 
   const refetch = (overrides = {}) => makeRequest(overrides);

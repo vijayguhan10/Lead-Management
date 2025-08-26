@@ -276,9 +276,11 @@ export default function TelecallerOverviewPanel() {
                     }`}
                     onClick={() => navigate(`/viewtelecaller`)}
                   >
-                    <td className="py-3 px-4 font-semibold flex items-center gap-2 border-b border-gray-200 whitespace-nowrap">
-                      <FaUserCircle className="text-xl text-gray-400" />
-                      {tc.name}
+                    <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <FaUserCircle className="text-xl text-gray-400 align-middle" />
+                        <span className="font-semibold align-middle">{tc.name}</span>
+                      </div>
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       {tc.phone}
