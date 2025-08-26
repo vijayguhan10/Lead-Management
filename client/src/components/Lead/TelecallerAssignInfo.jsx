@@ -143,13 +143,12 @@ const TelecallerAssignInfo = ({
 
       setAssigned({ telecaller: selected, at: new Date() });
       onAssign && onAssign(res || { leadId, telecallerId });
-      setModalOpen(false);
       toast.success("Telecaller assigned successfully.");
+      setModalOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error(
-        err?.response?.data?.message || "Failed to assign telecaller."
-      );
+      const message = err?.message || "Failed to assign telecaller.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
