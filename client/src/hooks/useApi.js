@@ -57,6 +57,7 @@ export const useApi = (serviceName, endpoint, options = {}) => {
       });
 
       setData(response.data);
+      return response.data;
     } catch (err) {
       console.error(`API Error (${serviceName}${endpoint}):`, err);
 
@@ -93,7 +94,8 @@ export const useApi = (serviceName, endpoint, options = {}) => {
         errorObj.message = err.message || "Unexpected error occurred";
       }
 
-      setError(errorObj);
+  setError(errorObj);
+  throw errorObj;
     } finally {
       setLoading(false);
     }

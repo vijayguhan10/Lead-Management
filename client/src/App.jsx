@@ -1,4 +1,6 @@
 import "./index.css";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
 import SideBar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import InitialRouter from "./Router/InitialRouter";
@@ -175,6 +177,8 @@ function App() {
           }
         }}
       />
+  {/* Toast container for react-toastify */}
+  <ToastContainer position="top-right" newestOnTop closeOnClick pauseOnHover />
     </div>
   );
 }
