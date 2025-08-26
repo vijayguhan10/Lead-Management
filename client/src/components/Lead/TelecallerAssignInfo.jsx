@@ -72,7 +72,12 @@ const Modal = ({ open, onClose, telecallers, onSelect, query, setQuery }) => {
   );
 };
 
-const TelecallerAssignInfo = ({ lead, telecallers = [], onAssign }) => {
+const TelecallerAssignInfo = ({
+  lead,
+  telecallers = [],
+  onAssign,
+  onClose,
+}) => {
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -105,9 +110,17 @@ const TelecallerAssignInfo = ({ lead, telecallers = [], onAssign }) => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <div className="rounded-2xl bg-white shadow-2xl border border-gray-100 overflow-hidden">
-        <div className="p-8 bg-gradient-to-r from-gray-50 to-white">
+    <div className="w-full max-w-3xl mx-auto relative">
+      <div className="rounded-2xl bg-white shadow-2xl border border-gray-100 overflow-hidden relative">
+        <div className="p-8 bg-gradient-to-r from-gray-50 to-white relative">
+          <button
+            className="absolute top-1 right-1 text-gray-500 hover:text-gray-700 text-3xl font-bold z-20 rounded-full w-10 h-10 flex items-center justify-center"
+            onClick={typeof onClose === "function" ? onClose : () => {}}
+            aria-label="Close"
+            type="button"
+          >
+            &times;
+          </button>
           <div className="flex flex-col gap-8">
             <div className="rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-purple-50 shadow-lg border border-gray-100 p-8">
               <h3 className="text-3xl font-extrabold text-indigo-800 mb-2 tracking-tight">
@@ -136,48 +149,56 @@ const TelecallerAssignInfo = ({ lead, telecallers = [], onAssign }) => {
               )}
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
-              <button
-                type="button"
-                onClick={() => setModalOpen(true)}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg hover:scale-105 transition text-lg"
-              >
-                {selected ? "Change Telecaller" : "Assign Telecaller"}
-              </button>
-              {selected && (
-                <div className="flex flex-col items-start gap-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-100 to-purple-100 shadow border border-indigo-200">
-                  <span className="text-xl font-bold text-indigo-700">
-                    {selected.name}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {selected.email || selected.phone}
-                  </span>
-                  <span className="text-sm text-purple-600 font-semibold">
-                    {selected.role || "Telecaller"}
-                  </span>
+              <div className="relative w-full flex justify-center">
+                <div className="flex flex-col sm:flex-row items-center gap-6 justify-center w-full">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(true)}
+                    className="px-8 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg hover:scale-105 transition text-lg"
+                  >
+                    {selected ? "Change Telecaller" : "Assign Telecaller"}
+                  </button>
+                  {selected && (
+                    <div className="flex flex-col items-start gap-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-100 to-purple-100 shadow border border-indigo-200">
+                      <span className="text-xl font-bold text-indigo-700">
+                        {selected.name}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {selected.email || selected.phone}
+                      </span>
+                      <span className="text-sm text-purple-600 font-semibold">
+                        {selected.role || "Telecaller"}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelected(null);
+                      setAssigned(null);
+                    }}
+                    className="px-6 py-3 rounded-full border border-gray-300 text-md text-gray-700 bg-white hover:bg-gray-50 font-semibold shadow"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAssign}
+                    disabled={!selected || loading}
+                    className={`px-8 py-3 rounded-full font-bold shadow-lg transition text-lg ${
+                      selected
+                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {loading
+                      ? "Assigning..."
+                      : assigned
+                      ? "Reassign"
+                      : "Assign"}
+                  </button>
                 </div>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelected(null);
-                  setAssigned(null);
-                }}
-                className="px-6 py-3 rounded-full border border-gray-300 text-md text-gray-700 bg-white hover:bg-gray-50 font-semibold shadow"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={handleAssign}
-                disabled={!selected || loading}
-                className={`px-8 py-3 rounded-full font-bold shadow-lg transition text-lg ${
-                  selected
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {loading ? "Assigning..." : assigned ? "Reassign" : "Assign"}
-              </button>
+              </div>
             </div>
           </div>
         </div>
