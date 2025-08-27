@@ -49,6 +49,10 @@ const TelecallerSchema = new Schema<ITelecaller>({
   email: { type: String, required: true },
   phone: { type: String, required: true },
   status: { type: String, enum: ['available', 'not available'], default: 'available' },
+  performanceMetrics: {
+    dailyCallTarget: { type: Number, required: false },
+    monthlyLeadGoal: { type: Number, required: false },
+  },
 }, { _id: false });
 
 const OrganizationSchema = new Schema<IOrganization>({
