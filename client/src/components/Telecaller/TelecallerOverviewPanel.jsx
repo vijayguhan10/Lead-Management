@@ -31,12 +31,15 @@ export default function TelecallerOverviewPanel() {
   const [showConfetti, setShowConfetti] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch telecallers from API
+  const orgId =
+    localStorage.getItem("organizationId") || localStorage.getItem("orgId");
+  const endpoint = `/telecallers/organization/${orgId}`
+  
   const {
     data: apiTelecallers,
     loading,
     error,
-  } = useApi("telecaller", "/telecallers");
+  } = useApi("telecaller", endpoint);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 4000);
@@ -261,15 +264,13 @@ export default function TelecallerOverviewPanel() {
                   <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-56 whitespace-nowrap">
                     Assigned Leads
                   </th>
-                  <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-32 whitespace-nowrap">
-                    Daily Call Target
+                  <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-56 whitespace-nowrap">
+                    Daily / Monthly Targets
                   </th>
                   <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-40 whitespace-nowrap">
                     Completed Calls Today
                   </th>
-                  <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-40 whitespace-nowrap">
-                    Assigned Leads Today
-                  </th>
+
                   <th className="py-4 px-4 text-left font-semibold border-b border-gray-200 w-28 whitespace-nowrap">
                     Status
                   </th>
@@ -307,7 +308,20 @@ export default function TelecallerOverviewPanel() {
                       </span>
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
-                      {tc.performanceMetrics?.dailyCallTarget || 0}
+                      <div className="flex gap-4 items-center">
+                        <div>
+                          <div className="text-xs text-gray-500">Daily</div>
+                          <div className="font-semibold">
+                            {tc.performanceMetrics?.dailyCallTarget || 0}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Monthly</div>
+                          <div className="font-semibold">
+                            {tc.performanceMetrics?.monthlyLeadGoal || 0}
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       <span className="font-bold text-[#16A34A]">
@@ -342,9 +356,7 @@ export default function TelecallerOverviewPanel() {
                         ></div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
-                      {tc.performanceMetrics?.leadsAssignedToday || 0}
-                    </td>
+
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 rounded font-semibold text-xs ${

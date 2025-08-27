@@ -116,6 +116,11 @@ export class TelecallerService {
     );
   }
 
+  async findByOrganization(orgId: string): Promise<Telecaller[]> {
+    const telecallers = await this.telecallerModel.find({ organizationId: orgId }).exec();
+    return telecallers;
+  }
+
   getCapacity(telecaller: Telecaller): number {
     const currentLeadCount = telecaller.assignedLeads?.length || 0;
     const dailyTarget = telecaller.performanceMetrics?.dailyCallTarget || 0;

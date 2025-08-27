@@ -80,5 +80,11 @@ export class TelecallerController {
     return this.telecallerService.getDailySummary(id);
   }
 
+  @Get('organization/:orgId')
+  @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
+  async getByOrganization(@Param('orgId') orgId: string): Promise<Telecaller[]> {
+    return this.telecallerService.findByOrganization(orgId);
+  }
+
   
 }

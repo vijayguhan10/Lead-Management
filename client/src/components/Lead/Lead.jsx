@@ -29,7 +29,10 @@ const Lead = () => {
   const [telecallers, setTelecallers] = useState([]);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
 
-  const orgId = localStorage.getItem("organizationId") || "";
+  const orgId =
+    localStorage.getItem("organizationId") ||
+    localStorage.getItem("orgId") ||
+    "";
 
   const {
     data: leadsData,
@@ -38,13 +41,13 @@ const Lead = () => {
     refetch: refetchLeads,
   } = useApi("lead", `/leads/getOrganizationLeads/${orgId}`);
 
+  const telecallerEndpoint = `/telecallers/organization/${orgId}`;
+
   const {
     data: telecallersData,
     loading: telecallersLoading,
     error: telecallersError,
-  } = useApi("telecaller", "/telecallers", {
-    params: { organizationId: orgId },
-  });
+  } = useApi("telecaller", telecallerEndpoint);
 
   const leadsPerPage = 6;
 
