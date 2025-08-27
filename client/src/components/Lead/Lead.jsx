@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
+import EditLead from "./EditLead";
 
 const Lead = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -268,22 +269,19 @@ const Lead = () => {
                   <td className="py-3 px-4 text-[#222] border-b">
                     {lead.assignedTo ? (
                       (() => {
-                        // Try to resolve telecaller id to a name from fetched telecallers
                         const assignedId = lead.assignedTo;
                         const tc = telecallers.find((t) =>
                           [t.id, t._id, t.userId, t.user?.id, t.user?._id].some(
                             (k) => String(k) === String(assignedId)
                           )
                         );
-                        const label = tc
-                          ? tc.name ||
-                            tc.fullName ||
-                            tc.firstName ||
-                            String(assignedId)
-                          : String(assignedId);
+
+                        const name = tc
+                          ? tc.name || tc.fullName || tc.firstName
+                          : "Assigned";
                         return (
                           <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
-                            {label}
+                            {name}
                           </span>
                         );
                       })()
@@ -419,11 +417,18 @@ const Lead = () => {
         </div>
       )}
       {editLead && (
-        <AddLead
+        <EditLead
+          leadId={editLead._id || editLead.id}
+          telecallers={telecallers}
           onClose={() => setEditLead(null)}
-          onSubmit={() => setEditLead(null)}
-          initialData={editLead}
-          isEdit={true}
+          onSubmit={() => {
+            setEditLead(null);
+            try {
+              if (typeof refetchLeads === "function") refetchLeads();
+            } catch (err) {
+              console.error("Failed to refetch leads after edit:", err);
+            }
+          }}
         />
       )}
     </div>
