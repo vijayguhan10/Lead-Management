@@ -32,7 +32,11 @@ export default function TelecallerOverviewPanel() {
   const navigate = useNavigate();
 
   // Fetch telecallers from API
-  const { data: apiTelecallers, loading, error } = useApi('telecaller', '/telecallers');
+  const {
+    data: apiTelecallers,
+    loading,
+    error,
+  } = useApi("telecaller", "/telecallers");
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 4000);
@@ -42,9 +46,9 @@ export default function TelecallerOverviewPanel() {
   // Use API data with proper error handling
   const telecallers = React.useMemo(() => {
     if (loading) return [];
-    
+
     if (error) {
-      console.error('Error fetching telecallers:', error);
+      console.error("Error fetching telecallers:", error);
       return []; // Return empty array for any error
     }
 
@@ -53,15 +57,18 @@ export default function TelecallerOverviewPanel() {
     }
 
     // Transform API data to match expected format
-    return apiTelecallers.map(telecaller => ({
+    return apiTelecallers.map((telecaller) => ({
       ...telecaller,
       // Ensure required fields exist with fallbacks
-      name: telecaller.name || 'Unknown Name',
-      phone: telecaller.phone || 'No Phone',
-      email: telecaller.email || 'No Email',
-      assignedLeads: Array.isArray(telecaller.assignedLeads) ? telecaller.assignedLeads : [],
-      performanceMetrics: telecaller.performanceMetrics || defaultPerformanceMetrics,
-      status: telecaller.status || 'Active'
+      name: telecaller.name || "Unknown Name",
+      phone: telecaller.phone || "No Phone",
+      email: telecaller.email || "No Email",
+      assignedLeads: Array.isArray(telecaller.assignedLeads)
+        ? telecaller.assignedLeads
+        : [],
+      performanceMetrics:
+        telecaller.performanceMetrics || defaultPerformanceMetrics,
+      status: telecaller.status || "Active",
     }));
   }, [apiTelecallers, loading, error]);
 
@@ -98,26 +105,31 @@ export default function TelecallerOverviewPanel() {
       <div className="max-w-6xl mx-auto">
         {/* Error Notice */}
         {error && (
-          <div className={`mx-4 mb-4 p-4 border rounded-lg ${
-            error.isAccessDenied 
-              ? 'bg-orange-50 border-orange-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <div className={`flex items-center gap-2 ${
-              error.isAccessDenied ? 'text-orange-700' : 'text-red-700'
-            }`}>
+          <div
+            className={`mx-4 mb-4 p-4 border rounded-lg ${
+              error.isAccessDenied
+                ? "bg-orange-50 border-orange-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 ${
+                error.isAccessDenied ? "text-orange-700" : "text-red-700"
+              }`}
+            >
               <FaExclamationTriangle />
               <span className="font-semibold">
-                {error.isAccessDenied ? 'Access Denied' : 'Connection Error'}
+                {error.isAccessDenied ? "Access Denied" : "Connection Error"}
               </span>
             </div>
-            <p className={`text-sm mt-1 ${
-              error.isAccessDenied ? 'text-orange-600' : 'text-red-600'
-            }`}>
-              {error.isAccessDenied 
+            <p
+              className={`text-sm mt-1 ${
+                error.isAccessDenied ? "text-orange-600" : "text-red-600"
+              }`}
+            >
+              {error.isAccessDenied
                 ? `Access denied: ${error.message}. Please contact your administrator for access to telecaller data.`
-                : `Unable to fetch latest telecaller data: ${error.message}`
-              }
+                : `Unable to fetch latest telecaller data: ${error.message}`}
             </p>
           </div>
         )}
@@ -145,10 +157,7 @@ export default function TelecallerOverviewPanel() {
           <div className="text-center py-12">
             <FaUserCircle className="text-6xl text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">
-              {error?.isAccessDenied 
-                ? "Access Denied" 
-                : "No Telecallers Found"
-              }
+              {error?.isAccessDenied ? "Access Denied" : "No Telecallers Found"}
             </h3>
             <p className="text-gray-500">
               {(() => {
@@ -203,7 +212,9 @@ export default function TelecallerOverviewPanel() {
                       <div className="font-bold text-lg text-[#7C3AED]">
                         {tc.name}
                       </div>
-                      <div className="text-xs text-gray-500 mb-2">{tc.phone}</div>
+                      <div className="text-xs text-gray-500 mb-2">
+                        {tc.phone}
+                      </div>
                     </div>
                     <div className="flex flex-col items-center gap-1 mt-2">
                       <span className="text-base font-semibold text-gray-700">
@@ -279,7 +290,9 @@ export default function TelecallerOverviewPanel() {
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <FaUserCircle className="text-xl text-gray-400 align-middle" />
-                        <span className="font-semibold align-middle">{tc.name}</span>
+                        <span className="font-semibold align-middle">
+                          {tc.name}
+                        </span>
                       </div>
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
@@ -289,31 +302,9 @@ export default function TelecallerOverviewPanel() {
                       {tc.email}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
-                      <span className="font-bold">{tc.assignedLeads?.length || 0}</span>
-                      <div className="flex gap-1 mt-1 overflow-x-auto whitespace-nowrap">
-                        {tc.assignedLeads?.length > 0 ? (
-                          <>
-                            {tc.assignedLeads.slice(0, 3).map((lead, leadIdx) => (
-                              <span
-                                key={`${tc._id}-lead-${leadIdx}`}
-                                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                  statusColors[lead.status] || statusColors["Not Contacted"]
-                                }`}
-                                title={`${lead.name} - ${lead.status}`}
-                              >
-                                {lead.name?.split(" ")[0] || "Unknown"} ({lead.status || "No Status"})
-                              </span>
-                            ))}
-                            {tc.assignedLeads.length > 3 && (
-                              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200">
-                                +{tc.assignedLeads.length - 3} more
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-gray-500">No leads assigned</span>
-                        )}
-                      </div>
+                      <span className="font-bold">
+                        {tc.assignedLeads?.length || 0}
+                      </span>
                     </td>
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       {tc.performanceMetrics?.dailyCallTarget || 0}
@@ -323,12 +314,16 @@ export default function TelecallerOverviewPanel() {
                         {tc.performanceMetrics?.completedCallsToday || 0}
                       </span>
                       <span className="text-xs text-gray-500 ml-1">
-                        ({tc.performanceMetrics?.dailyCallTarget 
+                        (
+                        {tc.performanceMetrics?.dailyCallTarget
                           ? Math.round(
-                              ((tc.performanceMetrics.completedCallsToday || 0) /
-                                tc.performanceMetrics.dailyCallTarget) * 100
+                              ((tc.performanceMetrics.completedCallsToday ||
+                                0) /
+                                tc.performanceMetrics.dailyCallTarget) *
+                                100
                             )
-                          : 0}%)
+                          : 0}
+                        %)
                       </span>
                       <div className="w-full h-2 bg-gray-200 rounded mt-1">
                         <div
@@ -336,9 +331,11 @@ export default function TelecallerOverviewPanel() {
                           style={{
                             width: `${Math.min(
                               100,
-                              tc.performanceMetrics?.dailyCallTarget 
-                                ? ((tc.performanceMetrics.completedCallsToday || 0) /
-                                    tc.performanceMetrics.dailyCallTarget) * 100
+                              tc.performanceMetrics?.dailyCallTarget
+                                ? ((tc.performanceMetrics.completedCallsToday ||
+                                    0) /
+                                    tc.performanceMetrics.dailyCallTarget) *
+                                    100
                                 : 0
                             )}%`,
                           }}
