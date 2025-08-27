@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { useApi } from "../../hooks/useApi";
 
 export default function OnboardConfig() {
   const [form, setForm] = useState({
@@ -13,7 +13,14 @@ export default function OnboardConfig() {
     adminPassword: "",
     telecallers: 1,
     telecallerDetails: [
-      { name: "", email: "", phone: "", role: "Telecaller", status: "" },
+      {
+        name: "",
+        email: "",
+        phone: "",
+        role: "Telecaller",
+        status: "",
+        performanceMetrics: { dailyCallTarget: 0, monthlyLeadGoal: 0 },
+      },
     ],
     exotel: {
       virtualNumbers: 1,
@@ -37,6 +44,9 @@ export default function OnboardConfig() {
   });
   const [openTelecaller, setOpenTelecaller] = useState(null);
 
+  const { execute: createOrganization } = useApi("user", "/organizations", {
+    manual: true,
+  });
   const handleChange = (e) => {
     const { name, value } = e.target;
     // Support nested fields using dot notation
@@ -64,19 +74,32 @@ export default function OnboardConfig() {
       orgAddress: form.orgAddress,
       language: form.language,
       timezone: form.timezone,
-      admin: {
-        name: form.adminName,
-        email: form.adminEmail,
-        phone: form.adminPhone,
-        password: form.adminPassword,
-      },
-      telecallers: form.telecallerDetails.map((tc) => ({
-        name: tc.name,
-        email: tc.email,
-        phone: tc.phone,
-        role: tc.role || "Telecaller",
-        status: tc.status || "available",
-      })),
+      admin: (() => {
+        const a = {
+          name: form.adminName,
+          email: form.adminEmail,
+          phone: form.adminPhone,
+        };
+        if (form.adminPassword) a["password"] = form.adminPassword;
+        return a;
+      })(),
+      telecallers: form.telecallerDetails.map((tc) => {
+        const t = {
+          name: tc.name,
+          email: tc.email,
+          phone: tc.phone,
+          role: tc.role || "Telecaller",
+          status: tc.status || "available",
+        };
+        if (
+          tc.performanceMetrics &&
+          (tc.performanceMetrics.dailyCallTarget ||
+            tc.performanceMetrics.monthlyLeadGoal)
+        ) {
+          t.performanceMetrics = tc.performanceMetrics;
+        }
+        return t;
+      }),
       exotel: {
         virtualNumbers: form.exotel.virtualNumbers,
         balance: form.exotel.balance,
@@ -97,21 +120,12 @@ export default function OnboardConfig() {
     };
 
     try {
-      const token = localStorage.getItem("jwt_token");
-      const baseUrl =
-        import.meta.env.VITE_USER_SERVICE_URL;
-        console.log("Base URL:", baseUrl); // Debug log
-      await axios.post(`${baseUrl}/organizations`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await createOrganization({ method: "POST", data: payload });
       alert("Organization created successfully!");
     } catch (error) {
       console.log(error);
       alert(
-        error.response?.data?.message ||
+        error.message ||
           "Failed to create organization. Please check your input and try again."
       );
     }
@@ -241,9 +255,10 @@ export default function OnboardConfig() {
             </div>
             <div className="space-y-2">
               {form.telecallerDetails.map((tc, idx) => {
+                const key = idx;
                 return (
                   <div
-                    key={idx}
+                    key={key}
                     className="bg-gray-50 rounded-lg shadow border mb-2"
                   >
                     <button
@@ -350,6 +365,71 @@ export default function OnboardConfig() {
                           <option value="Telecaller">Telecaller</option>
                           <option value="Supervisor">Supervisor</option>
                         </select>
+                        {/* Performance metrics inputs */}
+                        <div className="w-full">
+                          <label
+                            htmlFor={`dailyCallTarget_${idx}`}
+                            className="text-sm font-medium mb-1 block"
+                          >
+                            Daily Call Target
+                          </label>
+                          <input
+                            id={`dailyCallTarget_${idx}`}
+                            name={`telecallerDetails[${idx}].performanceMetrics.dailyCallTarget`}
+                            type="number"
+                            min={0}
+                            value={tc.performanceMetrics?.dailyCallTarget ?? 0}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              setForm((f) => {
+                                const telecallerDetails =
+                                  f.telecallerDetails.slice();
+                                telecallerDetails[idx] = {
+                                  ...telecallerDetails[idx],
+                                  performanceMetrics: {
+                                    ...(telecallerDetails[idx]
+                                      .performanceMetrics || {}),
+                                    dailyCallTarget: val,
+                                  },
+                                };
+                                return { ...f, telecallerDetails };
+                              });
+                            }}
+                            className="text-sm input"
+                          />
+                        </div>
+                        <div className="w-full">
+                          <label
+                            htmlFor={`monthlyLeadGoal_${idx}`}
+                            className="text-sm font-medium mb-1 block"
+                          >
+                            Monthly Lead Goal
+                          </label>
+                          <input
+                            id={`monthlyLeadGoal_${idx}`}
+                            name={`telecallerDetails[${idx}].performanceMetrics.monthlyLeadGoal`}
+                            type="number"
+                            min={0}
+                            value={tc.performanceMetrics?.monthlyLeadGoal ?? 0}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              setForm((f) => {
+                                const telecallerDetails =
+                                  f.telecallerDetails.slice();
+                                telecallerDetails[idx] = {
+                                  ...telecallerDetails[idx],
+                                  performanceMetrics: {
+                                    ...(telecallerDetails[idx]
+                                      .performanceMetrics || {}),
+                                    monthlyLeadGoal: val,
+                                  },
+                                };
+                                return { ...f, telecallerDetails };
+                              });
+                            }}
+                            className="text-sm input"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

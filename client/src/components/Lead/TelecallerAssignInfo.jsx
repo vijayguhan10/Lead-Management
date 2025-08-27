@@ -94,28 +94,23 @@ const Modal = ({
 const TelecallerAssignInfo = ({
   lead,
   telecallers = [],
+  loading = false,
   onAssign,
   onClose,
 }) => {
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [assigned, setAssigned] = useState(null);
-
-  // fetch telecallers if not provided via props
-  const { data: apiTelecallers, loading: apiLoading } = useApi(
-    "telecaller",
-    "/telecallers"
-  );
 
   const { execute: executeLead } = useApi("lead", "/", { manual: true });
 
-  // If the API returns an empty array, the Modal will show "No telecallers found.".
+  // Use telecallers provided via props (fetched once by parent)
   const telecallerList = useMemo(() => {
-    if (!apiTelecallers || !Array.isArray(apiTelecallers)) return [];
-    return apiTelecallers;
-  }, [apiTelecallers]);
+    if (!telecallers || !Array.isArray(telecallers)) return [];
+    return telecallers;
+  }, [telecallers]);
 
   const filtered = useMemo(() => {
     const source = telecallerList || [];
@@ -131,7 +126,7 @@ const TelecallerAssignInfo = ({
 
   const handleAssign = async () => {
     if (!selected) return;
-    setLoading(true);
+    setAssigning(true);
     try {
       const leadId = lead?.id ?? lead?._id ?? lead;
       const telecallerId = selected?.id ?? selected?._id ?? selected;
@@ -148,12 +143,12 @@ const TelecallerAssignInfo = ({
       const message = err?.message || "Failed to assign telecaller.";
       toast.error(message);
     } finally {
-      setLoading(false);
+      setAssigning(false);
     }
   };
 
   let assignButtonLabel;
-  if (loading) {
+  if (assigning) {
     assignButtonLabel = "Assigning...";
   } else if (assigned) {
     assignButtonLabel = "Reassign";
@@ -236,7 +231,7 @@ const TelecallerAssignInfo = ({
                   <button
                     type="button"
                     onClick={handleAssign}
-                    disabled={!selected || loading}
+                    disabled={!selected || assigning}
                     className={`px-8 py-3 rounded-full font-bold shadow-lg transition text-lg ${
                       selected
                         ? "bg-indigo-600 text-white hover:bg-indigo-700"
@@ -258,7 +253,7 @@ const TelecallerAssignInfo = ({
         onSelect={setSelected}
         query={query}
         setQuery={setQuery}
-        loading={apiLoading}
+        loading={loading}
       />
     </div>
   );
@@ -279,6 +274,7 @@ Modal.propTypes = {
 TelecallerAssignInfo.propTypes = {
   lead: PropTypes.object,
   telecallers: PropTypes.arrayOf(PropTypes.object),
+  loading: PropTypes.bool,
   onAssign: PropTypes.func,
   onClose: PropTypes.func,
 };

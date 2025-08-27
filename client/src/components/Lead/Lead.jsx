@@ -9,10 +9,12 @@ import {
   FaCommentDots,
   FaEdit,
 } from "react-icons/fa";
-import axios from "axios";
+import { useApi } from "../../hooks/useApi";
+import { toast } from "react-toastify";
 import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
+import EditLead from "./EditLead";
 
 const Lead = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,35 +26,54 @@ const Lead = () => {
   const [telecallerLead, setTelecallerLead] = useState(null);
   const [editLead, setEditLead] = useState(null);
   const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [telecallers, setTelecallers] = useState([]);
+  const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
+
+  const orgId = localStorage.getItem("organizationId") || "";
+
+  const {
+    data: leadsData,
+    loading: leadsLoading,
+    error: leadsError,
+    refetch: refetchLeads,
+  } = useApi("lead", `/leads/getOrganizationLeads/${orgId}`);
+
+  const {
+    data: telecallersData,
+    loading: telecallersLoading,
+    error: telecallersError,
+  } = useApi("telecaller", "/telecallers", {
+    params: { organizationId: orgId },
+  });
 
   const leadsPerPage = 6;
 
+  // Sync hook data into component state and handle errors
   useEffect(() => {
-    const fetchLeads = async () => {
-      setLoading(true);
-      const organizationId = localStorage.getItem("organizationId");
-      const token = localStorage.getItem("jwt_token");
-      try {
-        const res = await axios.get(
-          `${
-            import.meta.env.VITE_LEAD_SERVICE_URL
-          }/leads/getOrganizationLeads/${organizationId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setLeads(res.data || []);
-      } catch (err) {
-        setLeads([]);
-      }
-      setLoading(false);
-    };
-    fetchLeads();
-  }, []);
+    if (leadsData) {
+      setLeads(leadsData || []);
+    }
+    if (leadsError) {
+      setLeads([]);
+      toast.error(leadsError.message || "Failed to load leads.");
+    }
+  }, [leadsData, leadsError]);
 
+  useEffect(() => {
+    if (telecallersData) {
+      setTelecallers(Array.isArray(telecallersData) ? telecallersData : []);
+    }
+    if (telecallersError) {
+      setTelecallers([]);
+      toast.error(telecallersError.message || "Failed to load telecallers.");
+    }
+  }, [telecallersData, telecallersError]);
+
+  useEffect(() => {
+    setLoading(leadsLoading);
+  }, [leadsLoading]);
+
+  // Dashboard metrics
   const totalLeads = leads.length;
   const assignedLeads = leads.filter((l) => l.assignedTo).length;
   const unassignedLeadsCount = totalLeads - assignedLeads;
@@ -247,9 +268,23 @@ const Lead = () => {
                   </td>
                   <td className="py-3 px-4 text-[#222] border-b">
                     {lead.assignedTo ? (
-                      <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
-                        {lead.assignedTo}
-                      </span>
+                      (() => {
+                        const assignedId = lead.assignedTo;
+                        const tc = telecallers.find((t) =>
+                          [t.id, t._id, t.userId, t.user?.id, t.user?._id].some(
+                            (k) => String(k) === String(assignedId)
+                          )
+                        );
+
+                        const name = tc
+                          ? tc.name || tc.fullName || tc.firstName
+                          : "Assigned";
+                        return (
+                          <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
+                            {name}
+                          </span>
+                        );
+                      })()
                     ) : (
                       <button
                         className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
@@ -363,8 +398,14 @@ const Lead = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
           <TelecallerAssignInfo
             lead={telecallerLead}
-            telecallers={[]} // Pass your telecaller list here
-            onAssign={() => {
+            telecallers={telecallers}
+            loading={telecallersLoading}
+            onAssign={async (res) => {
+              try {
+                if (typeof refetchLeads === "function") await refetchLeads();
+              } catch (err) {
+                console.error("Failed to refetch leads:", err);
+              }
               setShowTelecallerAssign(false);
               setTelecallerLead(null);
             }}
@@ -376,11 +417,18 @@ const Lead = () => {
         </div>
       )}
       {editLead && (
-        <AddLead
+        <EditLead
+          leadId={editLead._id || editLead.id}
+          telecallers={telecallers}
           onClose={() => setEditLead(null)}
-          onSubmit={() => setEditLead(null)}
-          initialData={editLead}
-          isEdit={true}
+          onSubmit={() => {
+            setEditLead(null);
+            try {
+              if (typeof refetchLeads === "function") refetchLeads();
+            } catch (err) {
+              console.error("Failed to refetch leads after edit:", err);
+            }
+          }}
         />
       )}
     </div>
