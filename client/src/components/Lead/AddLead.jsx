@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -30,6 +30,7 @@ export default function AddLead({ onClose, onSubmit }) {
     attachments: "",
     conversionScore: "",
   });
+  const formRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,7 +88,10 @@ export default function AddLead({ onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#00000040] flex justify-center items-center">
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-5xl mx-4 py-0 px-0 relative flex flex-col">
+      <div
+        className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-5xl mx-4 py-0 px-0 relative flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
         <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-gray-100 rounded-t-3xl ">
           <div className="flex items-center gap-3">
             <FaUserPlus className="text-[#FFD700] text-2xl" />
@@ -104,11 +108,8 @@ export default function AddLead({ onClose, onSubmit }) {
           </button>
         </div>
         {/* Scrollable Form Area */}
-        <div
-          className="overflow-y-auto px-8 py-8"
-          style={{ maxHeight: "70vh" }}
-        >
-          <form onSubmit={handleSubmit}>
+        <div className="overflow-y-auto px-8 py-8 flex-1">
+          <form ref={formRef} onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Mandatory Fields */}
               <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
@@ -355,23 +356,26 @@ export default function AddLead({ onClose, onSubmit }) {
                 </div>
               </div>
             </div>
-            {/* Buttons */}
-            <div className="flex justify-end gap-4 mt-8">
-              <button
-                type="button"
-                className="px-8 py-3 bg-[#FFD700] text-[#222] rounded-lg font-bold shadow hover:bg-[#FFFDEB] transition"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-[#16A34A] text-white rounded-lg font-bold shadow hover:bg-[#13c24a] transition"
-              >
-                Add Lead
-              </button>
-            </div>
+            {/* keep form content only; actions moved to footer */}
+            <div style={{ height: 8 }} />
           </form>
+        </div>
+        {/* Footer action bar - always visible below the scroll area */}
+        <div className="px-8 py-4 flex justify-end gap-4 items-center border-t border-gray-100">
+          <button
+            type="button"
+            className="px-8 py-3 bg-[#FFD700] text-[#222] rounded-lg font-bold shadow hover:bg-[#FFFDEB] transition"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="px-8 py-3 bg-[#16A34A] text-white rounded-lg font-bold shadow hover:bg-[#13c24a] transition"
+            onClick={() => formRef.current && formRef.current.requestSubmit()}
+          >
+            Add Lead
+          </button>
         </div>
         {/* Input Styles */}
         <style>{`
