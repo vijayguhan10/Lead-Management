@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import PropTypes from "prop-types";
 import { toast } from "react-toastify";
 import { useApi } from "../../hooks/useApi";
@@ -158,6 +158,7 @@ const Modal = ({
 const TelecallerAssignInfo = ({
   lead,
   telecallers = [],
+  refetchTelecallers,
   loading = false,
   onAssign,
   onClose,
@@ -170,10 +171,16 @@ const TelecallerAssignInfo = ({
 
   const { execute: executeLead } = useApi("lead", "/", { manual: true });
 
-  // Use telecallers provided via props (fetched once by parent)
-  const telecallerList = useMemo(() => {
+  // Local copy of telecallers so we can optimistically update UI when assignments happen.
+  const [telecallerList, setTelecallerList] = useState(() => {
     if (!telecallers || !Array.isArray(telecallers)) return [];
     return telecallers;
+  });
+
+  // Sync local list when parent-provided telecallers prop changes.
+  useEffect(() => {
+    if (!telecallers || !Array.isArray(telecallers)) setTelecallerList([]);
+    else setTelecallerList(telecallers);
   }, [telecallers]);
 
   const filtered = useMemo(() => {
@@ -198,8 +205,12 @@ const TelecallerAssignInfo = ({
         method: "PATCH",
         endpoint: `/leads/${leadId}/assign/${telecallerId}`,
       });
+      const response = await refetchTelecallers();
+      console.log(response);
+
       setAssigned({ telecaller: selected, at: new Date() });
       onAssign && onAssign(res || { leadId, telecallerId });
+      
       toast.success("Telecaller assigned successfully.");
       setModalOpen(false);
     } catch (err) {
