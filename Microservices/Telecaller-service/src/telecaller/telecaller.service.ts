@@ -128,8 +128,10 @@ export class TelecallerService {
     return Math.max(0, dailyTarget - currentLeadCount);
   }
 
-  async smartAssignLeads(leadIds: string[]): Promise<any> {
-    const availableTelecallers = await this.findAvailableTelecallers();
+  async smartAssignLeads(leadIds: string[], organizationId?: string): Promise<any> {
+    const availableTelecallers = organizationId
+      ? await this.findByOrganization(organizationId)
+      : await this.findAvailableTelecallers();
     if (!availableTelecallers.length)
       throw new ConflictException('No telecallers available for assignment');
 

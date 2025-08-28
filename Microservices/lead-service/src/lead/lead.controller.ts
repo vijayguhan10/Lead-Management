@@ -103,8 +103,8 @@ export class LeadController {
 
   @Post('smart-assign')
   @UseGuards(AdminRoleGuard)
-  smartBulkAssign(@Body() data: { leadIds: string[] }): Promise<any> {
-    return this.leadService.smartBulkAssign(data.leadIds);
+  smartBulkAssign(@Body() data: { leadIds: string[]; organizationId?: string }): Promise<any> {
+    return this.leadService.smartBulkAssign(data.leadIds, data.organizationId);
   }
 
   @Patch(':id/notes')

@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
+import SmartAssign from "./SmartAssign";
 import EditLead from "./EditLead";
 
 const Lead = () => {
@@ -27,6 +28,7 @@ const Lead = () => {
   const [editLead, setEditLead] = useState(null);
   const [leads, setLeads] = useState([]);
   const [telecallers, setTelecallers] = useState([]);
+  const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
 
   const orgId =
@@ -108,7 +110,7 @@ const Lead = () => {
   };
 
   const bulkAssign = () => {
-    alert("Bulk assign logic coming soon!");
+    setShowSmartAssign(true);
   };
 
   const handleImportExcel = (e) => {
@@ -153,7 +155,7 @@ const Lead = () => {
             className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
             onClick={bulkAssign}
           >
-            Bulk Assign
+            Smart Assign
           </button>
           <button
             className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
@@ -421,6 +423,29 @@ const Lead = () => {
             }}
           />
         </div>
+      )}
+      {showSmartAssign && (
+        <SmartAssign
+          open={showSmartAssign}
+          onClose={() => setShowSmartAssign(false)}
+          leads={leads.filter((l) => !l.assignedTo)}
+          allLeads={leads}
+          telecallers={telecallers}
+          orgId={orgId}
+          onSuccess={async (res) => {
+            try {
+              // ensure parent data is refreshed BEFORE closing so UI immediately reflects assignment
+              if (typeof refetchLeads === "function") await refetchLeads();
+              if (typeof refetchTelecallers === "function")
+                await refetchTelecallers();
+              // show a toast only after successful assignment and refetch
+              toast.success("Smart assign completed.");
+            } catch (err) {
+              console.error("Failed to refetch leads after smart assign:", err);
+            }
+            // keep modal open to let user inspect results; they can close manually
+          }}
+        />
       )}
       {editLead && (
         <EditLead

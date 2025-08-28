@@ -146,7 +146,7 @@ export class LeadService {
   }
 
   // Smart bulk assign leads
-  async smartBulkAssign(leadIds: string[]): Promise<any> {
+  async smartBulkAssign(leadIds: string[], organizationId?: string): Promise<any> {
     try {
       // Validate that all leads exist
       const leads = await this.leadModel.find({ _id: { $in: leadIds } }).exec();
@@ -155,8 +155,8 @@ export class LeadService {
         throw new NotFoundException('One or more leads not found');
       }
 
-      // Use the telecaller service to perform smart assignment
-      const result = await this.telecallerClient.smartAssignLeads(leadIds);
+  // Use the telecaller service to perform smart assignment (filtered by organization)
+  const result = await this.telecallerClient.smartAssignLeads(leadIds, { organizationId });
 
       if (!result || !result.success) {
         throw new ConflictException(
