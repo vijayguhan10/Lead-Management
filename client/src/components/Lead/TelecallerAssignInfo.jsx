@@ -13,44 +13,83 @@ const Modal = ({
   loading,
 }) => {
   if (!open) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-2xl mx-4 py-10 px-8 relative flex flex-col justify-center">
-        <button
-          className="absolute top-8 right-10 text-gray-500 hover:text-gray-700 text-3xl font-bold"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          &times;
-        </button>
-        <div className="flex flex-col items-center w-full">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3 justify-center">
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-5xl mx-4 py-6 px-8 relative flex flex-col justify-center max-h-[85vh] overflow-auto">
+        <div className="w-full flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900 truncate">
             Assign Telecaller
           </h2>
-          {loading ? (
-            <div className="w-full text-center py-8 text-gray-500">
-              Loading telecallers...
-            </div>
-          ) : (
-            <>
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search telecaller name, email or phone..."
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none mb-6 text-base"
-              />
-              <div className="h-64 overflow-y-auto mb-4 w-full">
-                <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
-                  <tbody>
-                    {telecallers.length === 0 ? (
-                      <tr>
-                        <td className="p-6 text-center text-gray-500">
-                          No telecallers found.
-                        </td>
-                      </tr>
-                    ) : (
-                      telecallers.map((t, idx) => (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="ml-4 w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-800 text-3xl font-bold"
+          >
+            &times;
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="w-full text-center py-8 text-gray-500">
+            Loading telecallers...
+          </div>
+        ) : (
+          <>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search telecaller name, email or phone..."
+              className="w-full px-4 py-3 pr-20 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none mb-6 text-base"
+            />
+
+            <div className="h-96 md:h-[60vh] overflow-y-auto mb-4 w-full">
+              <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="py-3 px-4 text-left font-semibold border-b">
+                      Name
+                    </th>
+                    <th className="py-3 px-4 text-left font-semibold border-b">
+                      Contact
+                    </th>
+                    <th className="py-3 px-4 text-left font-semibold border-b">
+                      Role
+                    </th>
+                    <th className="py-3 px-4 text-left font-semibold border-b">
+                      Performance Metrics
+                    </th>
+                    <th className="py-3 px-4 text-left font-semibold border-b">
+                      Assigned Leads
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!telecallers || telecallers.length === 0) && (
+                    <tr>
+                      <td className="p-6 text-center text-gray-500" colSpan={5}>
+                        No telecallers found.
+                      </td>
+                    </tr>
+                  )}
+
+                  {telecallers &&
+                    telecallers.length > 0 &&
+                    telecallers.map((t, idx) => {
+                      const perf = t.performanceMetrics || {};
+                      const daily = perf.dailyCallTarget ?? 0;
+                      const monthly = perf.monthlyLeadGoal ?? 0;
+
+                      // normalize assignedCount into a number (avoid nested ternary)
+                      let assignedCount = 0;
+                      if (Array.isArray(t.assignedLeads))
+                        assignedCount = t.assignedLeads.length;
+                      else if (typeof t.assignedLeads === "number")
+                        assignedCount = t.assignedLeads;
+
+                      return (
                         <tr
                           key={t.id || t._id || t.email || idx}
                           className="transition bg-white hover:bg-indigo-50 border-b-2 border-gray-200 cursor-pointer"
@@ -60,32 +99,57 @@ const Modal = ({
                             setQuery("");
                           }}
                         >
-                          <td className="py-5 px-4 font-bold text-indigo-700 text-lg whitespace-nowrap">
+                          <td className="py-5 px-4 font-bold text-indigo-700 text-lg break-words">
                             {t.name}
                           </td>
-                          <td className="py-5 px-4 text-gray-700 text-base whitespace-nowrap">
+                          <td className="py-5 px-4 text-gray-700 text-base break-words">
                             {t.email || t.phone}
                           </td>
-                          <td className="py-5 px-4 text-purple-600 font-semibold text-base whitespace-nowrap">
+                          <td className="py-5 px-4 text-purple-600 font-semibold text-base">
                             {t.role || "Telecaller"}
                           </td>
+
+                          <td className="py-5 px-4 text-gray-700 text-sm">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center">
+                                <div className="w-36 text-right pr-2 font-medium">
+                                  Daily Call Target:
+                                </div>
+                                <div className="text-indigo-700 font-medium">
+                                  {daily}
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-36 text-right pr-2 font-medium">
+                                  Monthly Lead Goal:
+                                </div>
+                                <div className="text-indigo-700 font-medium">
+                                  {monthly}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-5 px-4 text-gray-800 font-semibold text-center">
+                            {assignedCount}
+                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex justify-center mt-8 w-full">
-                <button
-                  className="px-8 py-3 bg-gray-900 text-white rounded-full shadow font-bold text-lg hover:bg-gray-700 transition"
-                  onClick={onClose}
-                >
-                  Close
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-center mt-4 w-full">
+              <button
+                className="px-8 py-3 bg-gray-900 text-white rounded-full shadow font-bold text-lg hover:bg-gray-700 transition"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -148,13 +212,9 @@ const TelecallerAssignInfo = ({
   };
 
   let assignButtonLabel;
-  if (assigning) {
-    assignButtonLabel = "Assigning...";
-  } else if (assigned) {
-    assignButtonLabel = "Reassign";
-  } else {
-    assignButtonLabel = "Assign";
-  }
+  if (assigning) assignButtonLabel = "Assigning...";
+  else if (assigned) assignButtonLabel = "Reassign";
+  else assignButtonLabel = "Assign";
 
   return (
     <div className="w-full max-w-3xl mx-auto relative">
@@ -259,8 +319,6 @@ const TelecallerAssignInfo = ({
   );
 };
 
-export default TelecallerAssignInfo;
-
 Modal.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
@@ -278,3 +336,5 @@ TelecallerAssignInfo.propTypes = {
   onAssign: PropTypes.func,
   onClose: PropTypes.func,
 };
+
+export default TelecallerAssignInfo;
