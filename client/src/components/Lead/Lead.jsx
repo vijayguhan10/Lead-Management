@@ -47,6 +47,7 @@ const Lead = () => {
     data: telecallersData,
     loading: telecallersLoading,
     error: telecallersError,
+    refetch: refetchTelecallers,
   } = useApi("telecaller", telecallerEndpoint);
 
   const leadsPerPage = 6;
@@ -402,7 +403,9 @@ const Lead = () => {
           <TelecallerAssignInfo
             lead={telecallerLead}
             telecallers={telecallers}
+            setTelecallers={setTelecallers}
             loading={telecallersLoading}
+            refetchTelecallers={refetchTelecallers}
             onAssign={async (res) => {
               try {
                 if (typeof refetchLeads === "function") await refetchLeads();
