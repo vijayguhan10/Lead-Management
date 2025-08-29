@@ -85,5 +85,17 @@ export class TelecallerController {
     return this.telecallerService.findByOrganization(orgId);
   }
 
+  @Get('organization/:orgId/top3')
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
+  async getTopThree(@Param('orgId') orgId: string): Promise<Telecaller[]> {
+    return this.telecallerService.getTopThreeByOrganization(orgId);
+  }
+
+  @Get('byUser/:userId')
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
+  async getByUserId(@Param('userId') userId: string): Promise<Telecaller> {
+    return this.telecallerService.findByUserId(userId);
+  }
+
   
 }

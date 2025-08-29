@@ -45,7 +45,12 @@ function Auth() {
       localStorage.setItem("user", JSON.stringify(decoded));
 
       toast.success("Login successful!");
-      navigate("/admin-dashboard");
+      // Redirect telecallers to their view page, admins to admin dashboard
+      if (role === "telecaller") {
+        navigate("/viewtelecaller");
+      } else {
+        navigate("/admin-dashboard");
+      }
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Login failed. Please try again."

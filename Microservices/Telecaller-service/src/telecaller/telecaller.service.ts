@@ -133,6 +133,13 @@ export class TelecallerService {
     return telecallers;
   }
 
+  async getTopThreeByOrganization(orgId: string): Promise<Telecaller[]> {
+    const telecallers = await this.telecallerModel.find({ organizationId: orgId }).exec();
+    // sort descending by assignedLeads length
+    telecallers.sort((a, b) => (b.assignedLeads?.length || 0) - (a.assignedLeads?.length || 0));
+    return telecallers.slice(0, 3);
+  }
+
   getCapacity(telecaller: Telecaller): number {
     const currentLeadCount = telecaller.assignedLeads?.length || 0;
     const dailyTarget = telecaller.performanceMetrics?.dailyCallTarget || 0;

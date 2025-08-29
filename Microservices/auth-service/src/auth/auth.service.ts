@@ -68,7 +68,7 @@ export class AuthService {
       token,
       role: user.role,
       isActive: user.isActive,
-      organizationId: user.role == "admin" ? user.organizationId || "" : "",
+      organizationId: user.organizationId || "",
       userId: user._id?.toString() || "",
     };
   }
@@ -108,6 +108,7 @@ export class AuthService {
 
       return {
         userId: user._id,
+        orgId: user.organizationId,
         username: user.username,
         email: user.email,
         phoneNumber: user.phoneNumber,
