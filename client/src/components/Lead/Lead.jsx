@@ -186,31 +186,40 @@ const Lead = () => {
 
   return (
     <div className="p-8 min-h-screen font-sans">
-      {/* Top Cards */}
-      <div className="flex gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#222]">{totalLeads}</span>
-          <span className="text-xs text-[#222] mt-2">Total Leads</span>
+      {/* Top Cards: Only show for non-telecaller roles */}
+      {role !== "telecaller" && (
+        <div className="flex gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#222]">{totalLeads}</span>
+            <span className="text-xs text-[#222] mt-2">Total Leads</span>
+          </div>
+          <div className="bg-[#E6F9E5] rounded-xl shadow p-6 flex flex-col items-center border border-[#B7EFC5] w-1/4">
+            <span className="text-2xl font-bold text-[#16A34A]">
+              {assignedLeads}
+            </span>
+            <span className="text-xs text-[#222] mt-2">Assigned</span>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#FFD700]">
+              {unassignedLeadsCount}
+            </span>
+            <span className="text-xs text-[#222] mt-2">Unassigned</span>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#222]">
+              {conversionRate}%
+            </span>
+            <span className="text-xs text-[#222] mt-2">Conversion Rate</span>
+          </div>
         </div>
-        <div className="bg-[#E6F9E5] rounded-xl shadow p-6 flex flex-col items-center border border-[#B7EFC5] w-1/4">
-          <span className="text-2xl font-bold text-[#16A34A]">
-            {assignedLeads}
-          </span>
-          <span className="text-xs text-[#222] mt-2">Assigned</span>
+      )}
+      {/* Heading for telecaller role */}
+      {role === "telecaller" && (
+  <div className="mb-2 mt-0 flex flex-col items-center">
+          <h2 className="text-4xl font-extrabold text-[#222] tracking-tight mb-2">Leads</h2>
+          <div className="w-16 h-1 bg-gradient-to-r from-[#FFD700] via-[#E6F9E5] to-[#FFD700] rounded-full mb-2"></div>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#FFD700]">
-            {unassignedLeadsCount}
-          </span>
-          <span className="text-xs text-[#222] mt-2">Unassigned</span>
-        </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#222]">
-            {conversionRate}%
-          </span>
-          <span className="text-xs text-[#222] mt-2">Conversion Rate</span>
-        </div>
-      </div>
+      )}
 
       {/* Bulk Actions & Search */}
       <div className="flex items-center justify-between mb-4">
@@ -283,9 +292,6 @@ const Lead = () => {
                 Name
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
-                Email
-              </th>
-              <th className="py-3 px-4 text-left font-semibold border-b">
                 Phone
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
@@ -330,9 +336,6 @@ const Lead = () => {
                   </td>
                   <td className="py-3 px-4 font-medium text-blue-700 border-b hover:underline cursor-pointer">
                     {lead.name}
-                  </td>
-                  <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
-                    {lead.email}
                   </td>
                   <td className="py-3 px-4 text-black border-b">
                     {lead.phone}
@@ -390,20 +393,36 @@ const Lead = () => {
                       : "Just now"}
                   </td>
                   <td className="py-3 px-4 border-b">
-                    <div className="flex gap-2 items-center">
-                      <FaEye
-                        className="text-blue-500 hover:text-blue-700 cursor-pointer"
-                        onClick={() => setSelectedLead(lead)}
-                      />
-                      <FaEdit
-                        className="text-green-500 hover:text-green-700 cursor-pointer"
-                        title="Edit Lead"
-                        onClick={() => setEditLead(lead)}
-                      />
-                      <FaCommentDots
-                        className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
-                        title="Add/View Notes"
-                      />
+                    <div
+                      className={
+                        role === "telecaller"
+                          ? "flex items-center justify-center"
+                          : "flex gap-2 items-center"
+                      }
+                    >
+                      {role === "telecaller" ? (
+                        <FaEdit
+                          className="text-green-500 hover:text-green-700 cursor-pointer"
+                          title="Edit Notes/Tags"
+                          onClick={() => setEditLead(lead)}
+                        />
+                      ) : (
+                        <>
+                          <FaEye
+                            className="text-blue-500 hover:text-blue-700 cursor-pointer"
+                            onClick={() => setSelectedLead(lead)}
+                          />
+                          <FaEdit
+                            className="text-green-500 hover:text-green-700 cursor-pointer"
+                            title="Edit Lead"
+                            onClick={() => setEditLead(lead)}
+                          />
+                          <FaCommentDots
+                            className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
+                            title="Add/View Notes"
+                          />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

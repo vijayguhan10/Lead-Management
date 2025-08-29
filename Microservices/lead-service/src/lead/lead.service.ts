@@ -269,9 +269,13 @@ export class LeadService {
       .exec();
   }
 
-  async updateNotes(id: string, notes: string): Promise<Lead> {
+  async updateNotesTagsInterested(id: string, notes: string, tags: string[], interestedIn: string[]): Promise<Lead> {
+    const update: any = {};
+    if (typeof notes === 'string') update.notes = notes;
+    if (Array.isArray(tags)) update.tags = tags;
+    if (Array.isArray(interestedIn)) update.interestedIn = interestedIn;
     const updatedLead = await this.leadModel
-      .findByIdAndUpdate(id, { notes }, { new: true })
+      .findByIdAndUpdate(id, update, { new: true })
       .exec();
     if (!updatedLead) {
       throw new NotFoundException(`Lead with ID ${id} not found`);

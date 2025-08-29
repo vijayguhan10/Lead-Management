@@ -111,7 +111,9 @@ export class LeadController {
   updateNotes(
     @Param('id') id: string,
     @Body('notes') notes: string,
+    @Body('tags') tags: string[],
+    @Body('interestedIn') interestedIn: string[]
   ): Promise<Lead> {
-    return this.leadService.updateNotes(id, notes);
+    return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn);
   }
 }
