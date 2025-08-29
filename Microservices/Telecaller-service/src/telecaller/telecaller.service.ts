@@ -75,6 +75,18 @@ export class TelecallerService {
     return telecaller.assignedLeads;
   }
 
+  async findByUserId(userId: string): Promise<Telecaller> {
+    const telecaller = await this.telecallerModel.findOne({ userId }).exec();
+    if (!telecaller)
+      throw new NotFoundException(`Telecaller with userId ${userId} not found`);
+    return telecaller;
+  }
+
+  async getAssignedLeadsByUserId(userId: string): Promise<string[]> {
+    const telecaller = await this.findByUserId(userId);
+    return telecaller.assignedLeads;
+  }
+
   async getDailySummary(id: string): Promise<any> {
     const telecaller = await this.findById(id);
     return {

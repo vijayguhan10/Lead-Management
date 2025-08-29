@@ -67,11 +67,10 @@ export class TelecallerController {
     await this.telecallerService.remove(id);
   }
 
-  @Get(':id/leads')
-  @Get(':id/leads')
+  @Get(':userId/leads')
   @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
-  async getAssignedLeads(@Param('id') id: string): Promise<string[]> {
-    return this.telecallerService.getAssignedLeads(id);
+  async getAssignedLeads(@Param('userId') userId: string): Promise<string[]> {
+    return this.telecallerService.getAssignedLeadsByUserId(userId);
   }
 
   @Get(':id/summary')

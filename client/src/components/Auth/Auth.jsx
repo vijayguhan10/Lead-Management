@@ -3,7 +3,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 function Auth() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +24,6 @@ function Auth() {
     });
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -35,12 +34,12 @@ function Auth() {
           password: formData.password,
         }
       );
-      const { token, role, isActive ,organizationId} = res.data;
+      const { token, role, isActive, organizationId, userId } = res.data;
       localStorage.setItem("jwt_token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("isActive", isActive);
       localStorage.setItem("organizationId", organizationId);
-
+      localStorage.setItem("userId", userId);
       // Decode token and store payload if needed
       const decoded = jwtDecode(token);
       localStorage.setItem("user", JSON.stringify(decoded));

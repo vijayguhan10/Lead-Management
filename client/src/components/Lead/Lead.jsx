@@ -18,6 +18,11 @@ import SmartAssign from "./SmartAssign";
 import EditLead from "./EditLead";
 
 const Lead = () => {
+  const role = localStorage.getItem("role");
+  const userId =
+    localStorage.getItem("userId") ||
+    JSON.parse(localStorage.getItem("user"))?.userId;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -36,34 +41,93 @@ const Lead = () => {
     localStorage.getItem("orgId") ||
     "";
 
+  // Only fetch organization leads and telecallers list for admin role
   const {
     data: leadsData,
     loading: leadsLoading,
     error: leadsError,
     refetch: refetchLeads,
-  } = useApi("lead", `/leads/getOrganizationLeads/${orgId}`);
+  } = useApi(
+    "lead",
+    role === "admin" ? `/leads/getOrganizationLeads/${orgId}` : null,
+    { manual: role !== "admin" }
+  );
 
+  // Telecaller: fetch assigned lead IDs, then fetch details
+  const {
+    data: telecallerLeadIds,
+    loading: telecallerLeadsLoading,
+    error: telecallerLeadsError,
+    refetch: refetchTelecallerLeads,
+  } = useApi(
+    "telecaller",
+    role === "telecaller" && userId ? `/telecallers/${userId}/leads` : null,
+    { manual: role !== "telecaller" }
+  );
+
+  // Telecallers list (for assignment display, only for admin)
   const telecallerEndpoint = `/telecallers/organization/${orgId}`;
-
   const {
     data: telecallersData,
     loading: telecallersLoading,
     error: telecallersError,
     refetch: refetchTelecallers,
-  } = useApi("telecaller", telecallerEndpoint);
+  } = useApi("telecaller", role === "admin" ? telecallerEndpoint : null, {
+    manual: role !== "admin",
+  });
 
   const leadsPerPage = 6;
 
   // Sync hook data into component state and handle errors
   useEffect(() => {
-    if (leadsData) {
-      setLeads(leadsData || []);
+    if (role === "telecaller") {
+      // For telecaller, fetch lead details for assigned IDs
+      if (Array.isArray(telecallerLeadIds) && telecallerLeadIds.length > 0) {
+        setLoading(true);
+        Promise.all(
+          telecallerLeadIds.map((id) =>
+            fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/${id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(localStorage.getItem("jwt_token") && {
+                  Authorization: `Bearer ${localStorage.getItem("jwt_token")}`,
+                }),
+              },
+            })
+              .then((res) => res.json())
+              .catch(() => null)
+          )
+        ).then((details) => {
+          setLeads(details.filter(Boolean));
+          setLoading(false);
+        });
+      } else {
+        setLeads([]);
+        setLoading(false);
+      }
+      if (telecallerLeadsError) {
+        toast.error(
+          telecallerLeadsError.message || "Failed to load telecaller leads."
+        );
+      }
+    } else {
+      if (leadsData) {
+        setLeads(leadsData || []);
+      }
+      if (leadsError) {
+        setLeads([]);
+        toast.error(leadsError.message || "Failed to load leads.");
+      }
+      setLoading(leadsLoading);
     }
-    if (leadsError) {
-      setLeads([]);
-      toast.error(leadsError.message || "Failed to load leads.");
-    }
-  }, [leadsData, leadsError]);
+  }, [
+    leadsData,
+    leadsError,
+    telecallerLeadIds,
+    telecallerLeadsError,
+    role,
+    leadsLoading,
+  ]);
 
   useEffect(() => {
     if (telecallersData) {
@@ -151,33 +215,37 @@ const Lead = () => {
       {/* Bulk Actions & Search */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
-          <button
-            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-            onClick={bulkAssign}
-          >
-            Smart Assign
-          </button>
-          <button
-            className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
-            onClick={exportLeads}
-          >
-            <FaDownload /> Export
-          </button>
-          <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
-            <FaFileImport /> Import
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: "none" }}
-              onChange={handleImportExcel}
-            />
-          </label>
-          <button
-            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-            onClick={() => setShowIndividualAssign(true)}
-          >
-            Add Individual
-          </button>
+          {role !== "telecaller" && (
+            <>
+              <button
+                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                onClick={bulkAssign}
+              >
+                Smart Assign
+              </button>
+              <button
+                className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
+                onClick={exportLeads}
+              >
+                <FaDownload /> Export
+              </button>
+              <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
+                <FaFileImport /> Import
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  style={{ display: "none" }}
+                  onChange={handleImportExcel}
+                />
+              </label>
+              <button
+                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                onClick={() => setShowIndividualAssign(true)}
+              >
+                Add Individual
+              </button>
+            </>
+          )}
         </div>
         <div className="relative w-64">
           <input
