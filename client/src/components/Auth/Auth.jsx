@@ -24,12 +24,6 @@ function Auth() {
     });
   };
 
-  const handleRoleChange = (e) => {
-    setFormData({
-      ...formData,
-      role: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,31 +114,6 @@ function Auth() {
               </button>
             </div>
 
-            {/* Role Selection */}
-            <div className="flex gap-6  mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="admin"
-                  checked={formData.role === "admin"}
-                  onChange={handleRoleChange}
-                  className="accent-blue-600"
-                />
-                <span className="text-gray-700 font-medium">Admin</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="telecaller"
-                  checked={formData.role === "telecaller"}
-                  onChange={handleRoleChange}
-                  className="accent-green-600"
-                />
-                <span className="text-gray-700 font-medium">Telecaller</span>
-              </label>
-            </div>
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow"
