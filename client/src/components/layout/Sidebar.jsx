@@ -30,6 +30,7 @@ const SideBar = ({ setRunTour }) => {
   const [isOpen, setIsOpen] = useState(false);
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
+  const role = localStorage.getItem("role") || "";
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -85,8 +86,12 @@ const SideBar = ({ setRunTour }) => {
 
           {/* Menu Items */}
           <ul className="flex-1 space-y-1">
-            {menuItems.map(({ name, icon: Icon, path }, idx) => (
-              <li key={idx}>
+            {menuItems.map(({ name, icon: Icon, path }, idx) => {
+              // don't render Settings for telecaller users
+              if (name === "Settings" && role === "telecaller") return null;
+
+              return (
+                <li key={idx}>
                 <button
                   type="button"
                   onClick={() => {
@@ -129,7 +134,8 @@ const SideBar = ({ setRunTour }) => {
                   {name}
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <div className="mt-auto">

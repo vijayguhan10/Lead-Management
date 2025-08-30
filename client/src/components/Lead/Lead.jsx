@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaSearch,
   FaArrowLeft,
@@ -8,6 +9,7 @@ import {
   FaEye,
   FaCommentDots,
   FaEdit,
+  FaFolderOpen,
 } from "react-icons/fa";
 import { useApi } from "../../hooks/useApi";
 import { toast } from "react-toastify";
@@ -18,6 +20,7 @@ import SmartAssign from "./SmartAssign";
 import EditLead from "./EditLead";
 
 const Lead = () => {
+  const navigate = useNavigate();
   const role = localStorage.getItem("role");
   const userId =
     localStorage.getItem("userId") ||
@@ -215,8 +218,10 @@ const Lead = () => {
       )}
       {/* Heading for telecaller role */}
       {role === "telecaller" && (
-  <div className="mb-2 mt-0 flex flex-col items-center">
-          <h2 className="text-4xl font-extrabold text-[#222] tracking-tight mb-2">Leads</h2>
+        <div className="mb-2 mt-0 flex flex-col items-center">
+          <h2 className="text-4xl font-extrabold text-[#222] tracking-tight mb-2">
+            Leads
+          </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-[#FFD700] via-[#E6F9E5] to-[#FFD700] rounded-full mb-2"></div>
         </div>
       )}
@@ -309,18 +314,21 @@ const Lead = () => {
               <th className="py-3 px-4 text-left font-semibold border-b">
                 View
               </th>
+              <th className="py-3 px-4 text-left font-semibold border-b">
+                Files
+              </th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-gray-500">
+                <td colSpan={10} className="text-center py-8 text-gray-500">
                   Loading leads...
                 </td>
               </tr>
             ) : currentLeads.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-gray-500">
+                <td colSpan={10} className="text-center py-8 text-gray-500">
                   No leads found.
                 </td>
               </tr>
@@ -424,6 +432,18 @@ const Lead = () => {
                         </>
                       )}
                     </div>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <button
+                      onClick={() => {
+                        navigate(`/asset-management?leadId=${lead._id}`);
+                      }}
+                      className="text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1"
+                      title="Manage Files"
+                    >
+                      <FaFolderOpen className="w-4 h-4" />
+                      <span className="text-sm">Files</span>
+                    </button>
                   </td>
                 </tr>
               ))
