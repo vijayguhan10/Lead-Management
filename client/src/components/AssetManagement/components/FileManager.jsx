@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaCloudUploadAlt,
   FaTh,
@@ -127,12 +127,28 @@ const FileManager = ({
     }
   };
 
+  useEffect(() => {
+    if (!selectedLead) return;
+    // ensure file manager is expanded and scrolled into view when a lead is selected
+    setIsExpanded(true);
+    setTimeout(() => {
+      const el = document.getElementById("asset-file-manager");
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      }
+    }, 120);
+  }, [selectedLead]);
+
   if (!selectedLead) {
     return null;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow mt-6">
+    <div id="asset-file-manager" className="bg-white rounded-lg shadow mt-6">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">

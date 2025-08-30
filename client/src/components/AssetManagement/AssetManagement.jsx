@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import LeadsTable from "./components/LeadsTable";
 import FileManager from "./components/FileManager";
 import PreviewModal from "./components/PreviewModal";
@@ -45,6 +46,18 @@ const AssetManagement = () => {
     handleFileUpload(fileList);
     setShowUploadModal(false);
   };
+
+  // read leadId from query string so we can auto-open that lead's files
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const leadId = params.get("leadId");
+    if (leadId) {
+      // pass the id to LeadsTable which will fetch and select it
+      setSelectedLead({ _id: leadId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
