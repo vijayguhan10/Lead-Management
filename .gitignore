@@ -10,3 +10,5 @@ package-lock.json
 start-all-services.ps1
 start-all-services.sh
 TODO
+*.env.example
+*.env

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaSearch,
   FaArrowLeft,
@@ -12,9 +12,14 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [filteredLeads, setFilteredLeads] = useState([]);
+  const [telecallers, setTelecallers] = useState([]);
+  const [telecallerFilter, setTelecallerFilter] = useState("all");
 
   const orgId = localStorage.getItem("organizationId");
   const role = localStorage.getItem("role");
+  const userId =
+    localStorage.getItem("userId") ||
+    JSON.parse(localStorage.getItem("user"))?.userId;
   // Allow user to choose rows per page; default 4. When a lead is selected, force 2 rows.
   const [rowsPerPageChoice, setRowsPerPageChoice] = useState(4);
   // If the user interacts with the dropdown, we won't auto-override their choice.
@@ -25,9 +30,9 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
 
   // Reset to first page when a lead is selected and keep currentPage within bounds
   useEffect(() => {
-    setCurrentPage(1);
     // If a lead is selected and the user hasn't manually changed rows-per-page,
-    // auto-set the rows to 2 for focused view.
+    // auto-set the rows to 2 for focused view. Do NOT force currentPage to 1 —
+    // that causes the table to jump to first page when selecting a lead on another page.
     if (selectedLead && !userChangedRows) {
       setRowsPerPageChoice(2);
     }
@@ -51,27 +56,154 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     { manual: role !== "admin" }
   );
 
+  const {
+    data: telecallersData,
+    loading: telecallersLoading,
+    error: telecallersError,
+  } = useApi(
+    "telecaller",
+    role === "admin" ? `/telecallers/organization/${orgId}` : null,
+    { manual: role !== "admin" }
+  );
+
+  // For telecaller role: fetch the assigned lead IDs, then fetch details
+  const {
+    data: telecallerLeadIds,
+    loading: telecallerLeadsLoading,
+    error: telecallerLeadsError,
+  } = useApi(
+    "telecaller",
+    role === "telecaller" && userId ? `/telecallers/${userId}/leads` : null,
+    { manual: role !== "telecaller" }
+  );
+
+  const [telecallerDetailsLoading, setTelecallerDetailsLoading] =
+    useState(false);
+
+  useEffect(() => {
+    if (telecallersData) {
+      setTelecallers(Array.isArray(telecallersData) ? telecallersData : []);
+    }
+    if (telecallersError) {
+      setTelecallers([]);
+    }
+  }, [telecallersData, telecallersError]);
+
+  // When telecaller logs in, resolve their assigned lead IDs into lead objects
+  useEffect(() => {
+    if (role !== "telecaller") return;
+
+    const loadDetails = async () => {
+      if (!Array.isArray(telecallerLeadIds) || telecallerLeadIds.length === 0) {
+        setLeads([]);
+        setTelecallerDetailsLoading(false);
+        return;
+      }
+
+      setTelecallerDetailsLoading(true);
+      try {
+        const details = await Promise.all(
+          telecallerLeadIds.map((id) =>
+            fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/${id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(localStorage.getItem("jwt_token") && {
+                  Authorization: `Bearer ${localStorage.getItem("jwt_token")}`,
+                }),
+              },
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          )
+        );
+        setLeads(details.filter(Boolean));
+      } catch (err) {
+        console.error("Failed to load telecaller lead details:", err);
+        setLeads([]);
+      } finally {
+        setTelecallerDetailsLoading(false);
+      }
+    };
+
+    loadDetails();
+  }, [telecallerLeadIds, telecallerLeadsError, role]);
+
   useEffect(() => {
     if (leadData) {
       setLeads(leadData);
+      // If parent passed selectedLead with only an _id (from query param),
+      // find it in the fetched leads and ensure the table paginates to it and selects it.
+      if (selectedLead && (selectedLead._id || selectedLead.id)) {
+        // determine effective leads-per-page: if we would auto-set rows to 2
+        // (when a lead is selected and the user hasn't changed the choice),
+        // use 2 for the page calculation to avoid a race.
+        const effectivePerPage =
+          !userChangedRows && selectedLead ? 2 : rowsPerPageChoice;
+        const targetId = String(selectedLead._id || selectedLead.id);
+        const idx = leadData.findIndex((l) =>
+          [l._id, l.id, l.userId].some((k) => String(k) === targetId)
+        );
+        if (idx >= 0) {
+          const page = Math.floor(idx / effectivePerPage) + 1;
+          setCurrentPage(page);
+          // ensure parent selection is consistent
+          onLeadSelect && onLeadSelect(leadData[idx]);
+        }
+      }
     }
-  }, [leadData]);
+  }, [leadData, selectedLead, rowsPerPageChoice, userChangedRows]);
+
+  // If parent seeded a selectedLead with only an _id (from query param),
+  // and our local `leads` array is available (admin or telecaller details),
+  // find the lead and ensure the page and parent selection are set.
+  useEffect(() => {
+    if (!selectedLead || !(selectedLead._id || selectedLead.id)) return;
+    if (!Array.isArray(leads) || leads.length === 0) return;
+
+    const effectivePerPage = !userChangedRows && selectedLead ? 2 : rowsPerPageChoice;
+    const targetId = String(selectedLead._id || selectedLead.id);
+    const idx = leads.findIndex((l) =>
+      [l._id, l.id, l.userId].some((k) => String(k) === targetId)
+    );
+    if (idx >= 0) {
+      const page = Math.floor(idx / effectivePerPage) + 1;
+      setCurrentPage(page);
+      // ensure parent selection is consistent (pass the full lead object)
+      onLeadSelect && onLeadSelect(leads[idx]);
+    }
+  }, [leads, selectedLead, rowsPerPageChoice, userChangedRows]);
 
   // Filter leads based on search term
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredLeads(leads);
-    } else {
-      const filtered = leads.filter(
+    const term = searchTerm.trim().toLowerCase();
+    let filtered = leads.slice();
+
+    if (term) {
+      filtered = filtered.filter(
         (lead) =>
-          lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.phone.includes(searchTerm)
+          (lead.name || "").toLowerCase().includes(term) ||
+          (lead.email || "").toLowerCase().includes(term) ||
+          (lead.phone || "").includes(term)
       );
-      setFilteredLeads(filtered);
     }
-    setCurrentPage(1); // Reset to first page when searching
-  }, [leads, searchTerm]);
+
+    // Apply telecaller filter (admin-only). Options: 'all', 'unassigned', or telecallerId
+    if (role === "admin" && telecallerFilter && telecallerFilter !== "all") {
+      if (telecallerFilter === "unassigned") {
+        filtered = filtered.filter((l) => !l.assignedTo);
+      } else {
+        filtered = filtered.filter((l) => {
+          const assignedId =
+            l.assignedTo?._id || l.assignedTo?.id || l.assignedTo;
+          return assignedId && String(assignedId) === String(telecallerFilter);
+        });
+      }
+    }
+
+    setFilteredLeads(filtered);
+    // Reset to first page only when user is actively searching or filter changes.
+    if (term || telecallerFilter !== "all") setCurrentPage(1);
+  }, [leads, searchTerm, telecallerFilter, role]);
 
   // Pagination
   const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
@@ -82,7 +214,46 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  if (leadLoading) {
+  // compact pagination helper
+  const getPaginationPages = (totalPages, currentPage, maxVisible = 6) => {
+    if (totalPages <= maxVisible)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [];
+    pages.push(1);
+    const siblingCount = 1;
+    let left = Math.max(currentPage - siblingCount, 2);
+    let right = Math.min(currentPage + siblingCount, totalPages - 1);
+    if (left > 2) pages.push("...");
+    for (let p = left; p <= right; p++) pages.push(p);
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  };
+
+  // refs to table rows so we can scroll a selected lead into view
+  const rowRefs = useRef({});
+
+  // when selectedLead prop changes, ensure the row is visible (after render)
+  useEffect(() => {
+    if (selectedLead && selectedLead._id) {
+      const rowEl = rowRefs.current[selectedLead._id];
+      if (rowEl && typeof rowEl.scrollIntoView === "function") {
+        // center the row in view for clarity
+        rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [selectedLead, currentPage]);
+
+  // Determine whether we should show a generic leads loading state.
+  // Note: useApi defaults `loading` to true even when called in manual mode.
+  // For telecaller role we fetch assigned IDs then resolve details; use those flags
+  // instead of the auto `leadLoading` to avoid a permanent loader.
+  const showingLoadingSkeleton =
+    (role === "admin" && leadLoading) ||
+    (role === "telecaller" &&
+      (telecallerLeadsLoading || telecallerDetailsLoading));
+
+  if (showingLoadingSkeleton) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="animate-pulse">
@@ -97,7 +268,11 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     );
   }
 
-  if (leadError) {
+  // Show an error only when admin lead fetch failed, or telecaller id fetch errored
+  const showingError =
+    (role === "admin" && leadError) ||
+    (role === "telecaller" && telecallerLeadsError);
+  if (showingError) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-center text-red-500">
@@ -120,20 +295,63 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-600">Rows:</div>
-            <select
-              value={rowsPerPageChoice}
-              onChange={(e) => {
-                setRowsPerPageChoice(Number(e.target.value));
-                setUserChangedRows(true);
-              }}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value={3}>3</option>
-              <option value={4}>4</option>
-              <option value={6}>6</option>
-              <option value={10}>10</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Rows</label>
+              <select
+                value={rowsPerPageChoice}
+                onChange={(e) => {
+                  setRowsPerPageChoice(Number(e.target.value));
+                  setUserChangedRows(true);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white shadow-sm"
+                title="Rows per page"
+              >
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const v = i + 1;
+                  return (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Telecaller filter (admin only) */}
+            {role === "admin" && (
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="telecaller-filter"
+                  className="text-sm text-gray-600"
+                >
+                  Telecaller
+                </label>
+                <div className="relative">
+                  <select
+                    id="telecaller-filter"
+                    value={telecallerFilter}
+                    onChange={(e) => {
+                      setTelecallerFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none pl-3 pr-8 py-1 border border-gray-300 rounded-full text-sm bg-white shadow-sm"
+                    title="Filter by telecaller"
+                  >
+                    <option value="all">All telecallers</option>
+                    <option value="unassigned">Unassigned</option>
+                    {telecallers.map((t) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>
+                        {t.name || t.fullName || t.firstName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▼
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="relative w-64">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -182,6 +400,7 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
               currentLeads.map((lead) => (
                 <tr
                   key={lead._id}
+                  ref={(el) => (rowRefs.current[lead._id] = el)}
                   className={`hover:bg-gray-50 cursor-pointer transition-colors ${
                     selectedLead?._id === lead._id ? "bg-blue-50" : ""
                   }`}
@@ -278,7 +497,7 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
               </p>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px items-center">
                 <button
                   onClick={() => paginate(currentPage - 1)}
                   disabled={currentPage === 1}
@@ -286,22 +505,31 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
                 >
                   <FaArrowLeft className="w-4 h-4" />
                 </button>
-                {[...Array(totalPages)].map((_, index) => {
-                  const pageNumber = index + 1;
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => paginate(pageNumber)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === pageNumber
-                          ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
+                {(() => {
+                  const pages = getPaginationPages(totalPages, currentPage, 6);
+                  return pages.map((p, idx) =>
+                    p === "..." ? (
+                      <span
+                        key={`dots-${idx}`}
+                        className="px-3 py-2 text-gray-400"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => paginate(p)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === p
+                            ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
                   );
-                })}
+                })()}
                 <button
                   onClick={() => paginate(currentPage + 1)}
                   disabled={currentPage === totalPages}
