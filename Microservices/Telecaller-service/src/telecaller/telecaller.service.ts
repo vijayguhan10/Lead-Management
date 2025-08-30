@@ -75,6 +75,18 @@ export class TelecallerService {
     return telecaller.assignedLeads;
   }
 
+  async findByUserId(userId: string): Promise<Telecaller> {
+    const telecaller = await this.telecallerModel.findOne({ userId }).exec();
+    if (!telecaller)
+      throw new NotFoundException(`Telecaller with userId ${userId} not found`);
+    return telecaller;
+  }
+
+  async getAssignedLeadsByUserId(userId: string): Promise<string[]> {
+    const telecaller = await this.findByUserId(userId);
+    return telecaller.assignedLeads;
+  }
+
   async getDailySummary(id: string): Promise<any> {
     const telecaller = await this.findById(id);
     return {
@@ -121,6 +133,13 @@ export class TelecallerService {
     return telecallers;
   }
 
+  async getTopThreeByOrganization(orgId: string): Promise<Telecaller[]> {
+    const telecallers = await this.telecallerModel.find({ organizationId: orgId }).exec();
+    // sort descending by assignedLeads length
+    telecallers.sort((a, b) => (b.assignedLeads?.length || 0) - (a.assignedLeads?.length || 0));
+    return telecallers.slice(0, 3);
+  }
+
   getCapacity(telecaller: Telecaller): number {
     const currentLeadCount = telecaller.assignedLeads?.length || 0;
     const dailyTarget = telecaller.performanceMetrics?.dailyCallTarget || 0;
@@ -128,8 +147,10 @@ export class TelecallerService {
     return Math.max(0, dailyTarget - currentLeadCount);
   }
 
-  async smartAssignLeads(leadIds: string[]): Promise<any> {
-    const availableTelecallers = await this.findAvailableTelecallers();
+  async smartAssignLeads(leadIds: string[], organizationId?: string): Promise<any> {
+    const availableTelecallers = organizationId
+      ? await this.findByOrganization(organizationId)
+      : await this.findAvailableTelecallers();
     if (!availableTelecallers.length)
       throw new ConflictException('No telecallers available for assignment');
 

@@ -55,10 +55,11 @@ export class TelecallerClient {
     }
   }
 
-  async smartAssignLeads(leadIds: string[]) {
+  async smartAssignLeads(leadIds: string[], options?: { organizationId?: string }) {
     try {
+      const payload = { leadIds, organizationId: options?.organizationId };
       return await this.client
-        .send({ cmd: 'smart_assign_leads' }, leadIds)
+        .send({ cmd: 'smart_assign_leads' }, payload)
         .toPromise();
     } catch (error) {
       console.error('Error in smart lead assignment:', error.message);

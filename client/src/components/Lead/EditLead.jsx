@@ -12,6 +12,7 @@ export default function EditLead({
   onSubmit,
   telecallers = [],
 }) {
+  const role = localStorage.getItem("role");
   const { data, loading, error, execute } = useApi(
     "lead",
     leadId ? `/leads/${leadId}` : "/leads/0"
@@ -95,47 +96,60 @@ export default function EditLead({
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form) return;
-    // Only send editable fields (personal info)
-    const payload = {
-      name: form.name,
-      phone: form.phone,
-      source: form.source,
-      organizationId: form.organizationId,
-      priority: form.priority,
-      status: form.status,
-      assignedTo: form.assignedTo,
-      email: form.email,
-      alternatePhone: form.alternatePhone,
-      company: form.company,
-      position: form.position,
-      industry: form.industry,
-      location: form.location,
-      pincode: form.pincode,
-      notes: form.notes,
-      lastContacted: form.lastContacted
-        ? new Date(form.lastContacted)
-        : undefined,
-      nextFollowUp: form.nextFollowUp ? new Date(form.nextFollowUp) : undefined,
-      interestedIn: form.interestedIn
-        ? form.interestedIn.split(",").map((s) => s.trim())
-        : [],
-      tags: form.tags ? form.tags.split(",").map((s) => s.trim()) : [],
-      createdBy: form.createdBy,
-      attachments: form.attachments
-        ? form.attachments.split(",").map((s) => s.trim())
-        : [],
-      conversionScore: form.conversionScore
-        ? Number(form.conversionScore)
-        : undefined,
-    };
-
+    let payload;
+    let method = "PUT";
+    let endpoint = `/leads/${leadId}`;
+    if (role === "telecaller") {
+      // Only allow notes, tags, and interestedIn for telecaller
+      payload = {
+        notes: form.notes,
+        tags: form.tags ? form.tags.split(",").map((s) => s.trim()) : [],
+        interestedIn: form.interestedIn
+          ? form.interestedIn.split(",").map((s) => s.trim())
+          : [],
+      };
+      method = "PATCH";
+      endpoint = `/leads/${leadId}/notes`;
+    } else {
+      // Admin can edit all fields
+      payload = {
+        name: form.name,
+        phone: form.phone,
+        source: form.source,
+        organizationId: form.organizationId,
+        priority: form.priority,
+        status: form.status,
+        assignedTo: form.assignedTo,
+        email: form.email,
+        alternatePhone: form.alternatePhone,
+        company: form.company,
+        position: form.position,
+        industry: form.industry,
+        location: form.location,
+        pincode: form.pincode,
+        notes: form.notes,
+        lastContacted: form.lastContacted
+          ? new Date(form.lastContacted)
+          : undefined,
+        nextFollowUp: form.nextFollowUp
+          ? new Date(form.nextFollowUp)
+          : undefined,
+        interestedIn: form.interestedIn
+          ? form.interestedIn.split(",").map((s) => s.trim())
+          : [],
+        tags: form.tags ? form.tags.split(",").map((s) => s.trim()) : [],
+        createdBy: form.createdBy,
+        attachments: form.attachments
+          ? form.attachments.split(",").map((s) => s.trim())
+          : [],
+        conversionScore: form.conversionScore
+          ? Number(form.conversionScore)
+          : undefined,
+      };
+    }
     try {
       setSaving(true);
-      const res = await execute({
-        method: "PUT",
-        endpoint: `/leads/${leadId}`,
-        data: payload,
-      });
+      const res = await execute({ method, endpoint, data: payload });
       toast.success("Lead updated successfully");
       onSubmit && onSubmit(res || { ...data, ...payload });
       onClose && onClose();
@@ -181,203 +195,206 @@ export default function EditLead({
         <div className="overflow-y-auto px-8 py-8 flex-1">
           <form ref={formRef} onSubmit={handleSave}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
-                <h3 className="text-lg font-bold text-[#222] mb-4">
-                  Personal Info
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label
-                      htmlFor="name_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Name
-                    </label>
-                    <input
-                      id="name_input"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="phone_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Phone
-                    </label>
-                    <input
-                      id="phone_input"
-                      name="phone"
-                      value={form.phone}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="email_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Email
-                    </label>
-                    <input
-                      id="email_input"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="altphone_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Alternate Phone
-                    </label>
-                    <input
-                      id="altphone_input"
-                      name="alternatePhone"
-                      value={form.alternatePhone}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#E6F9E5] rounded-xl border border-[#16A34A] shadow p-6 mb-2">
-                <h3 className="text-lg font-bold text-[#222] mb-4">
-                  Company / Other
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <input
-                    name="company"
-                    value={form.company}
-                    onChange={handleChange}
-                    placeholder="Company"
-                    className="input"
-                  />
-                  <input
-                    name="position"
-                    value={form.position}
-                    onChange={handleChange}
-                    placeholder="Position"
-                    className="input"
-                  />
-                  <input
-                    name="industry"
-                    value={form.industry}
-                    onChange={handleChange}
-                    placeholder="Industry"
-                    className="input"
-                  />
-                  <input
-                    name="location"
-                    value={form.location}
-                    onChange={handleChange}
-                    placeholder="Location"
-                    className="input"
-                  />
-                  <input
-                    name="pincode"
-                    value={form.pincode}
-                    onChange={handleChange}
-                    placeholder="Pincode"
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
-                <h3 className="text-lg font-bold text-[#222] mb-4">
-                  Lead Meta
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label
-                      htmlFor="source_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Source
-                    </label>
-                    <input
-                      id="source_input"
-                      name="source"
-                      value={form.source}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="priority_select"
-                      className="font-semibold text-[#222]"
-                    >
-                      Priority
-                    </label>
-                    <select
-                      id="priority_select"
-                      name="priority"
-                      value={form.priority}
-                      onChange={handleChange}
-                      className="input"
-                    >
-                      {LeadPriority.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="status_select"
-                      className="font-semibold text-[#222]"
-                    >
-                      Status
-                    </label>
-                    <select
-                      id="status_select"
-                      name="status"
-                      value={form.status}
-                      onChange={handleChange}
-                      className="input"
-                    >
-                      {LeadStatus.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="assignedTo_display"
-                      className="font-semibold text-[#222]"
-                    >
-                      Assigned To (Telecaller)
-                    </label>
-                    <div
-                      id="assignedTo_display"
-                      className="input bg-gray-100 cursor-default"
-                    >
-                      {resolveAssignedName(form.assignedTo)}
+              {role !== "telecaller" && (
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+                  <h3 className="text-lg font-bold text-[#222] mb-4">
+                    Personal Info
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label
+                        htmlFor="name_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Name
+                      </label>
+                      <input
+                        id="name_input"
+                        name="name"
+                        value={form.name}
+                        onChange={handleChange}
+                        className="input"
+                      />
                     </div>
-                    {/* keep hidden value so payload still contains organizationId/assignedTo if needed */}
+                    <div>
+                      <label
+                        htmlFor="phone_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Phone
+                      </label>
+                      <input
+                        id="phone_input"
+                        name="phone"
+                        value={form.phone}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="email_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Email
+                      </label>
+                      <input
+                        id="email_input"
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="altphone_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Alternate Phone
+                      </label>
+                      <input
+                        id="altphone_input"
+                        name="alternatePhone"
+                        value={form.alternatePhone}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {role !== "telecaller" && (
+                <div className="bg-[#E6F9E5] rounded-xl border border-[#16A34A] shadow p-6 mb-2">
+                  <h3 className="text-lg font-bold text-[#222] mb-4">
+                    Company / Other
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
                     <input
-                      type="hidden"
-                      name="assignedTo"
-                      value={form.assignedTo || ""}
+                      name="company"
+                      value={form.company}
+                      onChange={handleChange}
+                      placeholder="Company"
+                      className="input"
+                    />
+                    <input
+                      name="position"
+                      value={form.position}
+                      onChange={handleChange}
+                      placeholder="Position"
+                      className="input"
+                    />
+                    <input
+                      name="industry"
+                      value={form.industry}
+                      onChange={handleChange}
+                      placeholder="Industry"
+                      className="input"
+                    />
+                    <input
+                      name="location"
+                      value={form.location}
+                      onChange={handleChange}
+                      placeholder="Location"
+                      className="input"
+                    />
+                    <input
+                      name="pincode"
+                      value={form.pincode}
+                      onChange={handleChange}
+                      placeholder="Pincode"
+                      className="input"
                     />
                   </div>
-
-                  {/* Organization intentionally not shown in this UI */}
                 </div>
-              </div>
+              )}
+
+              {role !== "telecaller" && (
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+                  <h3 className="text-lg font-bold text-[#222] mb-4">
+                    Lead Meta
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label
+                        htmlFor="source_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Source
+                      </label>
+                      <input
+                        id="source_input"
+                        name="source"
+                        value={form.source}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="priority_select"
+                        className="font-semibold text-[#222]"
+                      >
+                        Priority
+                      </label>
+                      <select
+                        id="priority_select"
+                        name="priority"
+                        value={form.priority}
+                        onChange={handleChange}
+                        className="input"
+                      >
+                        {LeadPriority.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="status_select"
+                        className="font-semibold text-[#222]"
+                      >
+                        Status
+                      </label>
+                      <select
+                        id="status_select"
+                        name="status"
+                        value={form.status}
+                        onChange={handleChange}
+                        className="input"
+                      >
+                        {LeadStatus.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="assignedTo_display"
+                        className="font-semibold text-[#222]"
+                      >
+                        Assigned To (Telecaller)
+                      </label>
+                      <div
+                        id="assignedTo_display"
+                        className="input bg-gray-100 cursor-default"
+                      >
+                        {resolveAssignedName(form.assignedTo)}
+                      </div>
+                      <input
+                        type="hidden"
+                        name="assignedTo"
+                        value={form.assignedTo || ""}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-[#E6F9E5] rounded-xl border border-[#16A34A] shadow p-6 mb-2">
                 <h3 className="text-lg font-bold text-[#222] mb-4">
@@ -409,93 +426,95 @@ export default function EditLead({
                 </div>
               </div>
 
-              <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
-                <h3 className="text-lg font-bold text-[#222] mb-4">
-                  Dates & Other
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label
-                      htmlFor="lastContacted_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Last Contacted
-                    </label>
-                    <input
-                      id="lastContacted_input"
-                      type="date"
-                      name="lastContacted"
-                      value={form.lastContacted || ""}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="nextFollowUp_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Next Follow Up
-                    </label>
-                    <input
-                      id="nextFollowUp_input"
-                      type="date"
-                      name="nextFollowUp"
-                      value={form.nextFollowUp || ""}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="conversionScore_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Conversion Score
-                    </label>
-                    <input
-                      id="conversionScore_input"
-                      type="number"
-                      name="conversionScore"
-                      value={form.conversionScore || ""}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="createdBy_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Created By
-                    </label>
-                    <input
-                      id="createdBy_input"
-                      name="createdBy"
-                      value={form.createdBy || ""}
-                      onChange={handleChange}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="attachments_input"
-                      className="font-semibold text-[#222]"
-                    >
-                      Attachments (comma separated)
-                    </label>
-                    <input
-                      id="attachments_input"
-                      name="attachments"
-                      value={form.attachments || ""}
-                      onChange={(e) =>
-                        handleArrayChange("attachments", e.target.value)
-                      }
-                      className="input"
-                    />
+              {role !== "telecaller" && (
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+                  <h3 className="text-lg font-bold text-[#222] mb-4">
+                    Dates & Other
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label
+                        htmlFor="lastContacted_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Last Contacted
+                      </label>
+                      <input
+                        id="lastContacted_input"
+                        type="date"
+                        name="lastContacted"
+                        value={form.lastContacted || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="nextFollowUp_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Next Follow Up
+                      </label>
+                      <input
+                        id="nextFollowUp_input"
+                        type="date"
+                        name="nextFollowUp"
+                        value={form.nextFollowUp || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="conversionScore_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Conversion Score
+                      </label>
+                      <input
+                        id="conversionScore_input"
+                        type="number"
+                        name="conversionScore"
+                        value={form.conversionScore || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="createdBy_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Created By
+                      </label>
+                      <input
+                        id="createdBy_input"
+                        name="createdBy"
+                        value={form.createdBy || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="attachments_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Attachments (comma separated)
+                      </label>
+                      <input
+                        id="attachments_input"
+                        name="attachments"
+                        value={form.attachments || ""}
+                        onChange={(e) =>
+                          handleArrayChange("attachments", e.target.value)
+                        }
+                        className="input"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </form>
         </div>

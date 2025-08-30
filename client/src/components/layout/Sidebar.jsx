@@ -30,6 +30,7 @@ const SideBar = ({ setRunTour }) => {
   const [isOpen, setIsOpen] = useState(false);
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
+  const role = localStorage.getItem("role") || "";
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -85,20 +86,36 @@ const SideBar = ({ setRunTour }) => {
 
           {/* Menu Items */}
           <ul className="flex-1 space-y-1">
-            {menuItems.map(({ name, icon: Icon, path }, idx) => (
-              <li key={idx}>
+            {menuItems.map(({ name, icon: Icon, path }, idx) => {
+              // don't render Settings for telecaller users
+              if (name === "Settings" && role === "telecaller") return null;
+
+              return (
+                <li key={idx}>
                 <button
                   type="button"
                   onClick={() => {
                     if (name === "Onboard-Tour" && setRunTour) {
                       setRunTour(true);
+                    } else if (name === "Dashboard") {
+                      // Check if user is telecaller and redirect to appropriate dashboard
+                      const userRole = localStorage.getItem('role');
+                      if (userRole === 'telecaller') {
+                        navigate('/viewtelecaller');
+                      } else {
+                        navigate(path);
+                      }
+                      closeSidebar();
                     } else {
                       navigate(path);
                       closeSidebar();
                     }
                   }}
                   className={`w-full text-left flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition ${
-                    window.location.pathname === path
+                    (name === "Dashboard" && 
+                     ((localStorage.getItem('role') === 'telecaller' && window.location.pathname === '/viewtelecaller') ||
+                      (localStorage.getItem('role') !== 'telecaller' && window.location.pathname === path))) ||
+                    (name !== "Dashboard" && window.location.pathname === path)
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   } sidebar-tour-step sidebar-tour-step-${idx}`}
@@ -106,7 +123,10 @@ const SideBar = ({ setRunTour }) => {
                   <Icon
                     size={20}
                     className={`${
-                      window.location.pathname === path
+                      (name === "Dashboard" && 
+                       ((localStorage.getItem('role') === 'telecaller' && window.location.pathname === '/viewtelecaller') ||
+                        (localStorage.getItem('role') !== 'telecaller' && window.location.pathname === path))) ||
+                      (name !== "Dashboard" && window.location.pathname === path)
                         ? "text-white"
                         : "text-gray-500"
                     }`}
@@ -114,7 +134,8 @@ const SideBar = ({ setRunTour }) => {
                   {name}
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <div className="mt-auto">

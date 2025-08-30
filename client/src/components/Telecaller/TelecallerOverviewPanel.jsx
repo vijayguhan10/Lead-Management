@@ -33,8 +33,18 @@ export default function TelecallerOverviewPanel() {
 
   const orgId =
     localStorage.getItem("organizationId") || localStorage.getItem("orgId");
-  const endpoint = `/telecallers/organization/${orgId}`
-  
+  const role = localStorage.getItem("role") || "";
+
+  // If the logged-in user is a telecaller, request the server's top-3 endpoint.
+  let endpoint = null;
+  if (orgId) {
+    if (role === "telecaller") {
+      endpoint = `/telecallers/organization/${orgId}/top3`;
+    } else {
+      endpoint = `/telecallers/organization/${orgId}`;
+    }
+  }
+
   const {
     data: apiTelecallers,
     loading,
@@ -82,6 +92,11 @@ export default function TelecallerOverviewPanel() {
 
   // Helper: Get top 3 telecallers by completedCallsToday
   const topTelecallers = React.useMemo(() => {
+    // If the endpoint already returns top-3 (when viewing as a telecaller), use the returned list directly.
+    if (endpoint && endpoint.includes('/top3')) {
+      return telecallers.slice(0, 3);
+    }
+
     return [...telecallers]
       .sort((a, b) => {
         const aCompleted = a.performanceMetrics?.completedCallsToday || 0;
@@ -222,20 +237,36 @@ export default function TelecallerOverviewPanel() {
                     <div className="flex flex-col items-center gap-1 mt-2">
                       <span className="text-base font-semibold text-gray-700">
                         <span className="text-[#FFD700] font-bold">
-                          {tc.performanceMetrics?.completedCallsToday || 0}
+                          {tc.performanceMetrics?.completedCallsToday ?? (tc.assignedLeads?.length || 0)}
                         </span>{" "}
                         Calls
                       </span>
+
                       <span className="text-xs text-gray-500">
-                        Target:{" "}
+                        Daily Call Target: {" "}
                         <span className="font-bold">
-                          {tc.performanceMetrics?.dailyCallTarget || 0}
+                          {tc.performanceMetrics?.dailyCallTarget ?? 'N/A'}
                         </span>
                       </span>
+
                       <span className="text-xs text-gray-500">
-                        Leads Today:{" "}
+                        Monthly Leads Goal: {" "}
                         <span className="font-bold">
-                          {tc.performanceMetrics?.leadsAssignedToday || 0}
+                          {tc.performanceMetrics?.monthlyLeadGoal ?? 'N/A'}
+                        </span>
+                      </span>
+
+                      <span className="text-xs text-gray-500">
+                        Leads Today: {" "}
+                        <span className="font-bold">
+                          {tc.performanceMetrics?.leadsAssignedToday ?? (tc.assignedLeads?.length || 0)}
+                        </span>
+                      </span>
+
+                      <span className="text-xs text-gray-500 mt-1">
+                        Total Assigned Leads: {" "}
+                        <span className="font-bold">
+                          {tc.assignedLeads?.length || 0}
                         </span>
                       </span>
                     </div>
@@ -246,8 +277,8 @@ export default function TelecallerOverviewPanel() {
           </div>
         )}
 
-        {/* Telecallers Table */}
-        {telecallers.length > 0 && (
+  {/* Telecallers Table (hide for telecaller role since they only need Top 3) */}
+  {role !== "telecaller" && telecallers.length > 0 && (
           <div className="rounded-xl shadow border border-gray-200 bg-white max-h-[500px] overflow-auto">
             <table className="min-w-full text-sm border-separate border-spacing-0 table-fixed">
               <thead>

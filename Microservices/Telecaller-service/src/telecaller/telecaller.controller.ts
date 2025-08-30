@@ -67,11 +67,10 @@ export class TelecallerController {
     await this.telecallerService.remove(id);
   }
 
-  @Get(':id/leads')
-  @Get(':id/leads')
+  @Get(':userId/leads')
   @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
-  async getAssignedLeads(@Param('id') id: string): Promise<string[]> {
-    return this.telecallerService.getAssignedLeads(id);
+  async getAssignedLeads(@Param('userId') userId: string): Promise<string[]> {
+    return this.telecallerService.getAssignedLeadsByUserId(userId);
   }
 
   @Get(':id/summary')
@@ -84,6 +83,18 @@ export class TelecallerController {
   @UseGuards(JwtAuthGuard, AdminAccessRoleGuard)
   async getByOrganization(@Param('orgId') orgId: string): Promise<Telecaller[]> {
     return this.telecallerService.findByOrganization(orgId);
+  }
+
+  @Get('organization/:orgId/top3')
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
+  async getTopThree(@Param('orgId') orgId: string): Promise<Telecaller[]> {
+    return this.telecallerService.getTopThreeByOrganization(orgId);
+  }
+
+  @Get('byUser/:userId')
+  @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
+  async getByUserId(@Param('userId') userId: string): Promise<Telecaller> {
+    return this.telecallerService.findByUserId(userId);
   }
 
   

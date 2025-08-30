@@ -74,9 +74,10 @@ export class TelecallerMicroserviceController {
   }
 
   @MessagePattern({ cmd: 'smart_assign_leads' })
-  async smartAssignLeads(@Payload() leadIds: string[]) {
+  async smartAssignLeads(@Payload() payload: { leadIds: string[]; organizationId?: string }) {
     try {
-      const result = await this.telecallerService.smartAssignLeads(leadIds);
+      const { leadIds, organizationId } = payload || { leadIds: [] };
+      const result = await this.telecallerService.smartAssignLeads(leadIds, organizationId);
       return result;
     } catch (error) {
       return {

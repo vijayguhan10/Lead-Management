@@ -3,7 +3,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 function Auth() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +24,6 @@ function Auth() {
     });
   };
 
-  const handleRoleChange = (e) => {
-    setFormData({
-      ...formData,
-      role: e.target.value,
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -41,18 +34,23 @@ function Auth() {
           password: formData.password,
         }
       );
-      const { token, role, isActive ,organizationId} = res.data;
+      const { token, role, isActive, organizationId, userId } = res.data;
       localStorage.setItem("jwt_token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("isActive", isActive);
       localStorage.setItem("organizationId", organizationId);
-
+      localStorage.setItem("userId", userId);
       // Decode token and store payload if needed
       const decoded = jwtDecode(token);
       localStorage.setItem("user", JSON.stringify(decoded));
 
       toast.success("Login successful!");
-      navigate("/admin-dashboard");
+      // Redirect telecallers to their view page, admins to admin dashboard
+      if (role === "telecaller") {
+        navigate("/viewtelecaller");
+      } else {
+        navigate("/admin-dashboard");
+      }
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Login failed. Please try again."
@@ -120,31 +118,6 @@ function Auth() {
               </button>
             </div>
 
-            {/* Role Selection */}
-            <div className="flex gap-6  mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="admin"
-                  checked={formData.role === "admin"}
-                  onChange={handleRoleChange}
-                  className="accent-blue-600"
-                />
-                <span className="text-gray-700 font-medium">Admin</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="telecaller"
-                  checked={formData.role === "telecaller"}
-                  onChange={handleRoleChange}
-                  className="accent-green-600"
-                />
-                <span className="text-gray-700 font-medium">Telecaller</span>
-              </label>
-            </div>
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow"

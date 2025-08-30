@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaSearch,
   FaArrowLeft,
@@ -8,15 +9,23 @@ import {
   FaEye,
   FaCommentDots,
   FaEdit,
+  FaFolderOpen,
 } from "react-icons/fa";
 import { useApi } from "../../hooks/useApi";
 import { toast } from "react-toastify";
 import AddLead from "./AddLead";
 import LeadDetailsPopup from "./LeadDetailsPopup";
 import TelecallerAssignInfo from "./TelecallerAssignInfo";
+import SmartAssign from "./SmartAssign";
 import EditLead from "./EditLead";
 
 const Lead = () => {
+  const navigate = useNavigate();
+  const role = localStorage.getItem("role");
+  const userId =
+    localStorage.getItem("userId") ||
+    JSON.parse(localStorage.getItem("user"))?.userId;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -27,6 +36,7 @@ const Lead = () => {
   const [editLead, setEditLead] = useState(null);
   const [leads, setLeads] = useState([]);
   const [telecallers, setTelecallers] = useState([]);
+  const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
 
   const orgId =
@@ -34,34 +44,93 @@ const Lead = () => {
     localStorage.getItem("orgId") ||
     "";
 
+  // Only fetch organization leads and telecallers list for admin role
   const {
     data: leadsData,
     loading: leadsLoading,
     error: leadsError,
     refetch: refetchLeads,
-  } = useApi("lead", `/leads/getOrganizationLeads/${orgId}`);
+  } = useApi(
+    "lead",
+    role === "admin" ? `/leads/getOrganizationLeads/${orgId}` : null,
+    { manual: role !== "admin" }
+  );
 
+  // Telecaller: fetch assigned lead IDs, then fetch details
+  const {
+    data: telecallerLeadIds,
+    loading: telecallerLeadsLoading,
+    error: telecallerLeadsError,
+    refetch: refetchTelecallerLeads,
+  } = useApi(
+    "telecaller",
+    role === "telecaller" && userId ? `/telecallers/${userId}/leads` : null,
+    { manual: role !== "telecaller" }
+  );
+
+  // Telecallers list (for assignment display, only for admin)
   const telecallerEndpoint = `/telecallers/organization/${orgId}`;
-
   const {
     data: telecallersData,
     loading: telecallersLoading,
     error: telecallersError,
     refetch: refetchTelecallers,
-  } = useApi("telecaller", telecallerEndpoint);
+  } = useApi("telecaller", role === "admin" ? telecallerEndpoint : null, {
+    manual: role !== "admin",
+  });
 
   const leadsPerPage = 6;
 
   // Sync hook data into component state and handle errors
   useEffect(() => {
-    if (leadsData) {
-      setLeads(leadsData || []);
+    if (role === "telecaller") {
+      // For telecaller, fetch lead details for assigned IDs
+      if (Array.isArray(telecallerLeadIds) && telecallerLeadIds.length > 0) {
+        setLoading(true);
+        Promise.all(
+          telecallerLeadIds.map((id) =>
+            fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/${id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(localStorage.getItem("jwt_token") && {
+                  Authorization: `Bearer ${localStorage.getItem("jwt_token")}`,
+                }),
+              },
+            })
+              .then((res) => res.json())
+              .catch(() => null)
+          )
+        ).then((details) => {
+          setLeads(details.filter(Boolean));
+          setLoading(false);
+        });
+      } else {
+        setLeads([]);
+        setLoading(false);
+      }
+      if (telecallerLeadsError) {
+        toast.error(
+          telecallerLeadsError.message || "Failed to load telecaller leads."
+        );
+      }
+    } else {
+      if (leadsData) {
+        setLeads(leadsData || []);
+      }
+      if (leadsError) {
+        setLeads([]);
+        toast.error(leadsError.message || "Failed to load leads.");
+      }
+      setLoading(leadsLoading);
     }
-    if (leadsError) {
-      setLeads([]);
-      toast.error(leadsError.message || "Failed to load leads.");
-    }
-  }, [leadsData, leadsError]);
+  }, [
+    leadsData,
+    leadsError,
+    telecallerLeadIds,
+    telecallerLeadsError,
+    role,
+    leadsLoading,
+  ]);
 
   useEffect(() => {
     if (telecallersData) {
@@ -108,7 +177,7 @@ const Lead = () => {
   };
 
   const bulkAssign = () => {
-    alert("Bulk assign logic coming soon!");
+    setShowSmartAssign(true);
   };
 
   const handleImportExcel = (e) => {
@@ -120,62 +189,77 @@ const Lead = () => {
 
   return (
     <div className="p-8 min-h-screen font-sans">
-      {/* Top Cards */}
-      <div className="flex gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#222]">{totalLeads}</span>
-          <span className="text-xs text-[#222] mt-2">Total Leads</span>
+      {/* Top Cards: Only show for non-telecaller roles */}
+      {role !== "telecaller" && (
+        <div className="flex gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#222]">{totalLeads}</span>
+            <span className="text-xs text-[#222] mt-2">Total Leads</span>
+          </div>
+          <div className="bg-[#E6F9E5] rounded-xl shadow p-6 flex flex-col items-center border border-[#B7EFC5] w-1/4">
+            <span className="text-2xl font-bold text-[#16A34A]">
+              {assignedLeads}
+            </span>
+            <span className="text-xs text-[#222] mt-2">Assigned</span>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#FFD700]">
+              {unassignedLeadsCount}
+            </span>
+            <span className="text-xs text-[#222] mt-2">Unassigned</span>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
+            <span className="text-2xl font-bold text-[#222]">
+              {conversionRate}%
+            </span>
+            <span className="text-xs text-[#222] mt-2">Conversion Rate</span>
+          </div>
         </div>
-        <div className="bg-[#E6F9E5] rounded-xl shadow p-6 flex flex-col items-center border border-[#B7EFC5] w-1/4">
-          <span className="text-2xl font-bold text-[#16A34A]">
-            {assignedLeads}
-          </span>
-          <span className="text-xs text-[#222] mt-2">Assigned</span>
+      )}
+      {/* Heading for telecaller role */}
+      {role === "telecaller" && (
+        <div className="mb-2 mt-0 flex flex-col items-center">
+          <h2 className="text-4xl font-extrabold text-[#222] tracking-tight mb-2">
+            Leads
+          </h2>
+          <div className="w-16 h-1 bg-gradient-to-r from-[#FFD700] via-[#E6F9E5] to-[#FFD700] rounded-full mb-2"></div>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#FFD700]">
-            {unassignedLeadsCount}
-          </span>
-          <span className="text-xs text-[#222] mt-2">Unassigned</span>
-        </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border border-[#F7E9A0] w-1/4">
-          <span className="text-2xl font-bold text-[#222]">
-            {conversionRate}%
-          </span>
-          <span className="text-xs text-[#222] mt-2">Conversion Rate</span>
-        </div>
-      </div>
+      )}
 
       {/* Bulk Actions & Search */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
-          <button
-            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-            onClick={bulkAssign}
-          >
-            Bulk Assign
-          </button>
-          <button
-            className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
-            onClick={exportLeads}
-          >
-            <FaDownload /> Export
-          </button>
-          <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
-            <FaFileImport /> Import
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: "none" }}
-              onChange={handleImportExcel}
-            />
-          </label>
-          <button
-            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-            onClick={() => setShowIndividualAssign(true)}
-          >
-            Add Individual
-          </button>
+          {role !== "telecaller" && (
+            <>
+              <button
+                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                onClick={bulkAssign}
+              >
+                Smart Assign
+              </button>
+              <button
+                className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
+                onClick={exportLeads}
+              >
+                <FaDownload /> Export
+              </button>
+              <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
+                <FaFileImport /> Import
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  style={{ display: "none" }}
+                  onChange={handleImportExcel}
+                />
+              </label>
+              <button
+                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                onClick={() => setShowIndividualAssign(true)}
+              >
+                Add Individual
+              </button>
+            </>
+          )}
         </div>
         <div className="relative w-64">
           <input
@@ -213,9 +297,6 @@ const Lead = () => {
                 Name
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
-                Email
-              </th>
-              <th className="py-3 px-4 text-left font-semibold border-b">
                 Phone
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
@@ -233,18 +314,21 @@ const Lead = () => {
               <th className="py-3 px-4 text-left font-semibold border-b">
                 View
               </th>
+              <th className="py-3 px-4 text-left font-semibold border-b">
+                Files
+              </th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-gray-500">
+                <td colSpan={10} className="text-center py-8 text-gray-500">
                   Loading leads...
                 </td>
               </tr>
             ) : currentLeads.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-gray-500">
+                <td colSpan={10} className="text-center py-8 text-gray-500">
                   No leads found.
                 </td>
               </tr>
@@ -260,9 +344,6 @@ const Lead = () => {
                   </td>
                   <td className="py-3 px-4 font-medium text-blue-700 border-b hover:underline cursor-pointer">
                     {lead.name}
-                  </td>
-                  <td className="py-3 px-4 text-black border-b hover:underline cursor-pointer">
-                    {lead.email}
                   </td>
                   <td className="py-3 px-4 text-black border-b">
                     {lead.phone}
@@ -320,21 +401,49 @@ const Lead = () => {
                       : "Just now"}
                   </td>
                   <td className="py-3 px-4 border-b">
-                    <div className="flex gap-2 items-center">
-                      <FaEye
-                        className="text-blue-500 hover:text-blue-700 cursor-pointer"
-                        onClick={() => setSelectedLead(lead)}
-                      />
-                      <FaEdit
-                        className="text-green-500 hover:text-green-700 cursor-pointer"
-                        title="Edit Lead"
-                        onClick={() => setEditLead(lead)}
-                      />
-                      <FaCommentDots
-                        className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
-                        title="Add/View Notes"
-                      />
+                    <div
+                      className={
+                        role === "telecaller"
+                          ? "flex items-center justify-center"
+                          : "flex gap-2 items-center"
+                      }
+                    >
+                      {role === "telecaller" ? (
+                        <FaEdit
+                          className="text-green-500 hover:text-green-700 cursor-pointer"
+                          title="Edit Notes/Tags"
+                          onClick={() => setEditLead(lead)}
+                        />
+                      ) : (
+                        <>
+                          <FaEye
+                            className="text-blue-500 hover:text-blue-700 cursor-pointer"
+                            onClick={() => setSelectedLead(lead)}
+                          />
+                          <FaEdit
+                            className="text-green-500 hover:text-green-700 cursor-pointer"
+                            title="Edit Lead"
+                            onClick={() => setEditLead(lead)}
+                          />
+                          <FaCommentDots
+                            className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
+                            title="Add/View Notes"
+                          />
+                        </>
+                      )}
                     </div>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <button
+                      onClick={() => {
+                        navigate(`/asset-management?leadId=${lead._id}`);
+                      }}
+                      className="text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1"
+                      title="Manage Files"
+                    >
+                      <FaFolderOpen className="w-4 h-4" />
+                      <span className="text-sm">Files</span>
+                    </button>
                   </td>
                 </tr>
               ))
@@ -421,6 +530,29 @@ const Lead = () => {
             }}
           />
         </div>
+      )}
+      {showSmartAssign && (
+        <SmartAssign
+          open={showSmartAssign}
+          onClose={() => setShowSmartAssign(false)}
+          leads={leads.filter((l) => !l.assignedTo)}
+          allLeads={leads}
+          telecallers={telecallers}
+          orgId={orgId}
+          onSuccess={async (res) => {
+            try {
+              // ensure parent data is refreshed BEFORE closing so UI immediately reflects assignment
+              if (typeof refetchLeads === "function") await refetchLeads();
+              if (typeof refetchTelecallers === "function")
+                await refetchTelecallers();
+              // show a toast only after successful assignment and refetch
+              toast.success("Smart assign completed.");
+            } catch (err) {
+              console.error("Failed to refetch leads after smart assign:", err);
+            }
+            // keep modal open to let user inspect results; they can close manually
+          }}
+        />
       )}
       {editLead && (
         <EditLead
