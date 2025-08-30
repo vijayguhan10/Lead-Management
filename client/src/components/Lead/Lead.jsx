@@ -39,6 +39,7 @@ const Lead = () => {
   const [telecallerFilter, setTelecallerFilter] = useState("all");
   const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
+  const [rowsPerPageChoice, setRowsPerPageChoice] = useState(6);
 
   const orgId =
     localStorage.getItem("organizationId") ||
@@ -80,7 +81,7 @@ const Lead = () => {
     manual: role !== "admin",
   });
 
-  const leadsPerPage = 6;
+  const leadsPerPage = rowsPerPageChoice;
 
   // Sync hook data into component state and handle errors
   useEffect(() => {
@@ -178,6 +179,36 @@ const Lead = () => {
   const currentLeads = filteredLeads.slice(indexOfFirstLead, indexOfLastLead);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Generate pagination items with ellipses when pages exceed maxVisible
+  const getPaginationPages = (totalPages, currentPage, maxVisible = 6) => {
+    if (totalPages <= maxVisible)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+    const pages = [];
+    pages.push(1);
+
+    const siblingCount = 1; // pages to show on each side of current
+    let left = Math.max(currentPage - siblingCount, 2);
+    let right = Math.min(currentPage + siblingCount, totalPages - 1);
+
+    if (left > 2) {
+      pages.push("...");
+    } else {
+      for (let i = 2; i < left; i++) pages.push(i);
+    }
+
+    for (let p = left; p <= right; p++) pages.push(p);
+
+    if (right < totalPages - 1) {
+      pages.push("...");
+    } else {
+      for (let i = right + 1; i < totalPages; i++) pages.push(i);
+    }
+
+    pages.push(totalPages);
+    return pages;
+  };
 
   const toggleLeadSelect = (id) => {
     setSelectedLeads((prev) =>
@@ -281,22 +312,58 @@ const Lead = () => {
               htmlFor="telecaller-filter"
               className="text-sm font-medium text-gray-700"
             >
-              Filter by telecallers
+              Telecaller
             </label>
-            <select
-              id="telecaller-filter"
-              className="px-4 py-2 bg-white shadow-sm border border-gray-200 rounded-md text-sm"
-              value={telecallerFilter}
-              onChange={(e) => setTelecallerFilter(e.target.value)}
-            >
-              <option value="all">All telecallers</option>
-              <option value="unassigned">Unassigned</option>
-              {telecallers.map((t) => (
-                <option key={t._id || t.id} value={t._id || t.id}>
-                  {t.name || t.fullName || t.firstName}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="telecaller-filter"
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-full text-sm bg-white shadow-sm"
+                value={telecallerFilter}
+                onChange={(e) => {
+                  setTelecallerFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All telecallers</option>
+                <option value="unassigned">Unassigned</option>
+                {telecallers.map((t) => (
+                  <option key={t._id || t.id} value={t._id || t.id}>
+                    {t.name || t.fullName || t.firstName}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                ▼
+              </div>
+            </div>
+
+            {/* Rows per page (1-10) */}
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="lead-rows-per-page"
+                className="text-sm text-gray-600"
+              >
+                Rows
+              </label>
+              <select
+                id="lead-rows-per-page"
+                className="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white shadow-sm"
+                value={rowsPerPageChoice}
+                onChange={(e) => {
+                  setRowsPerPageChoice(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const v = i + 1;
+                  return (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
         )}
 
@@ -508,23 +575,31 @@ const Lead = () => {
         >
           <FaArrowLeft /> Previous
         </button>
-        <div className="flex gap-2">
-          {Array.from(
-            { length: Math.ceil(filteredLeads.length / leadsPerPage) },
-            (_, index) => (
-              <button
-                key={index + 1}
-                onClick={() => paginate(index + 1)}
-                className={`px-3 py-1 rounded-lg shadow ${
-                  currentPage === index + 1
-                    ? "bg-[#222] text-[#FFD700]"
-                    : "bg-[#FFFDEB] text-[#222] hover:bg-[#FFD700]"
-                }`}
-              >
-                {index + 1}
-              </button>
-            )
-          )}
+        <div className="flex gap-2 items-center">
+          {(() => {
+            const totalPages =
+              Math.ceil(filteredLeads.length / leadsPerPage) || 1;
+            const pages = getPaginationPages(totalPages, currentPage, 6);
+            return pages.map((p, idx) =>
+              p === "..." ? (
+                <span key={`dots-${idx}`} className="px-3 text-gray-400">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => paginate(p)}
+                  className={`px-3 py-1 rounded-lg shadow ${
+                    currentPage === p
+                      ? "bg-[#222] text-[#FFD700]"
+                      : "bg-[#FFFDEB] text-[#222] hover:bg-[#FFD700]"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            );
+          })()}
         </div>
         <button
           onClick={() => paginate(currentPage + 1)}

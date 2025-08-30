@@ -12,6 +12,8 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [filteredLeads, setFilteredLeads] = useState([]);
+  const [telecallers, setTelecallers] = useState([]);
+  const [telecallerFilter, setTelecallerFilter] = useState("all");
 
   const orgId = localStorage.getItem("organizationId");
   const role = localStorage.getItem("role");
@@ -51,6 +53,25 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     { manual: role !== "admin" }
   );
 
+  const {
+    data: telecallersData,
+    loading: telecallersLoading,
+    error: telecallersError,
+  } = useApi(
+    "telecaller",
+    role === "admin" ? `/telecallers/organization/${orgId}` : null,
+    { manual: role !== "admin" }
+  );
+
+  useEffect(() => {
+    if (telecallersData) {
+      setTelecallers(Array.isArray(telecallersData) ? telecallersData : []);
+    }
+    if (telecallersError) {
+      setTelecallers([]);
+    }
+  }, [telecallersData, telecallersError]);
+
   useEffect(() => {
     if (leadData) {
       setLeads(leadData);
@@ -78,20 +99,35 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
 
   // Filter leads based on search term
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredLeads(leads);
-    } else {
-      const filtered = leads.filter(
+    const term = searchTerm.trim().toLowerCase();
+    let filtered = leads.slice();
+
+    if (term) {
+      filtered = filtered.filter(
         (lead) =>
-          lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.phone.includes(searchTerm)
+          (lead.name || "").toLowerCase().includes(term) ||
+          (lead.email || "").toLowerCase().includes(term) ||
+          (lead.phone || "").includes(term)
       );
-      setFilteredLeads(filtered);
     }
-    // Reset to first page only when user is actively searching.
-    if (searchTerm.trim()) setCurrentPage(1);
-  }, [leads, searchTerm]);
+
+    // Apply telecaller filter (admin-only). Options: 'all', 'unassigned', or telecallerId
+    if (role === "admin" && telecallerFilter && telecallerFilter !== "all") {
+      if (telecallerFilter === "unassigned") {
+        filtered = filtered.filter((l) => !l.assignedTo);
+      } else {
+        filtered = filtered.filter((l) => {
+          const assignedId =
+            l.assignedTo?._id || l.assignedTo?.id || l.assignedTo;
+          return assignedId && String(assignedId) === String(telecallerFilter);
+        });
+      }
+    }
+
+    setFilteredLeads(filtered);
+    // Reset to first page only when user is actively searching or filter changes.
+    if (term || telecallerFilter !== "all") setCurrentPage(1);
+  }, [leads, searchTerm, telecallerFilter, role]);
 
   // Pagination
   const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
@@ -101,6 +137,22 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
   );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // compact pagination helper
+  const getPaginationPages = (totalPages, currentPage, maxVisible = 6) => {
+    if (totalPages <= maxVisible)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [];
+    pages.push(1);
+    const siblingCount = 1;
+    let left = Math.max(currentPage - siblingCount, 2);
+    let right = Math.min(currentPage + siblingCount, totalPages - 1);
+    if (left > 2) pages.push("...");
+    for (let p = left; p <= right; p++) pages.push(p);
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  };
 
   // refs to table rows so we can scroll a selected lead into view
   const rowRefs = useRef({});
@@ -154,20 +206,63 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-600">Rows:</div>
-            <select
-              value={rowsPerPageChoice}
-              onChange={(e) => {
-                setRowsPerPageChoice(Number(e.target.value));
-                setUserChangedRows(true);
-              }}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value={3}>3</option>
-              <option value={4}>4</option>
-              <option value={6}>6</option>
-              <option value={10}>10</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Rows</label>
+              <select
+                value={rowsPerPageChoice}
+                onChange={(e) => {
+                  setRowsPerPageChoice(Number(e.target.value));
+                  setUserChangedRows(true);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white shadow-sm"
+                title="Rows per page"
+              >
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const v = i + 1;
+                  return (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Telecaller filter (admin only) */}
+            {role === "admin" && (
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="telecaller-filter"
+                  className="text-sm text-gray-600"
+                >
+                  Telecaller
+                </label>
+                <div className="relative">
+                  <select
+                    id="telecaller-filter"
+                    value={telecallerFilter}
+                    onChange={(e) => {
+                      setTelecallerFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none pl-3 pr-8 py-1 border border-gray-300 rounded-full text-sm bg-white shadow-sm"
+                    title="Filter by telecaller"
+                  >
+                    <option value="all">All telecallers</option>
+                    <option value="unassigned">Unassigned</option>
+                    {telecallers.map((t) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>
+                        {t.name || t.fullName || t.firstName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▼
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="relative w-64">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -313,7 +408,7 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
               </p>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px items-center">
                 <button
                   onClick={() => paginate(currentPage - 1)}
                   disabled={currentPage === 1}
@@ -321,22 +416,31 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
                 >
                   <FaArrowLeft className="w-4 h-4" />
                 </button>
-                {[...Array(totalPages)].map((_, index) => {
-                  const pageNumber = index + 1;
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => paginate(pageNumber)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === pageNumber
-                          ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
+                {(() => {
+                  const pages = getPaginationPages(totalPages, currentPage, 6);
+                  return pages.map((p, idx) =>
+                    p === "..." ? (
+                      <span
+                        key={`dots-${idx}`}
+                        className="px-3 py-2 text-gray-400"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => paginate(p)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === p
+                            ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
                   );
-                })}
+                })()}
                 <button
                   onClick={() => paginate(currentPage + 1)}
                   disabled={currentPage === totalPages}
