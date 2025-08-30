@@ -17,6 +17,9 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
 
   const orgId = localStorage.getItem("organizationId");
   const role = localStorage.getItem("role");
+  const userId =
+    localStorage.getItem("userId") ||
+    JSON.parse(localStorage.getItem("user"))?.userId;
   // Allow user to choose rows per page; default 4. When a lead is selected, force 2 rows.
   const [rowsPerPageChoice, setRowsPerPageChoice] = useState(4);
   // If the user interacts with the dropdown, we won't auto-override their choice.
@@ -63,6 +66,20 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     { manual: role !== "admin" }
   );
 
+  // For telecaller role: fetch the assigned lead IDs, then fetch details
+  const {
+    data: telecallerLeadIds,
+    loading: telecallerLeadsLoading,
+    error: telecallerLeadsError,
+  } = useApi(
+    "telecaller",
+    role === "telecaller" && userId ? `/telecallers/${userId}/leads` : null,
+    { manual: role !== "telecaller" }
+  );
+
+  const [telecallerDetailsLoading, setTelecallerDetailsLoading] =
+    useState(false);
+
   useEffect(() => {
     if (telecallersData) {
       setTelecallers(Array.isArray(telecallersData) ? telecallersData : []);
@@ -71,6 +88,45 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
       setTelecallers([]);
     }
   }, [telecallersData, telecallersError]);
+
+  // When telecaller logs in, resolve their assigned lead IDs into lead objects
+  useEffect(() => {
+    if (role !== "telecaller") return;
+
+    const loadDetails = async () => {
+      if (!Array.isArray(telecallerLeadIds) || telecallerLeadIds.length === 0) {
+        setLeads([]);
+        setTelecallerDetailsLoading(false);
+        return;
+      }
+
+      setTelecallerDetailsLoading(true);
+      try {
+        const details = await Promise.all(
+          telecallerLeadIds.map((id) =>
+            fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/${id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(localStorage.getItem("jwt_token") && {
+                  Authorization: `Bearer ${localStorage.getItem("jwt_token")}`,
+                }),
+              },
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          )
+        );
+        setLeads(details.filter(Boolean));
+      } catch (err) {
+        console.error("Failed to load telecaller lead details:", err);
+        setLeads([]);
+      } finally {
+        setTelecallerDetailsLoading(false);
+      }
+    };
+
+    loadDetails();
+  }, [telecallerLeadIds, telecallerLeadsError, role]);
 
   useEffect(() => {
     if (leadData) {
@@ -96,6 +152,26 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
       }
     }
   }, [leadData, selectedLead, rowsPerPageChoice, userChangedRows]);
+
+  // If parent seeded a selectedLead with only an _id (from query param),
+  // and our local `leads` array is available (admin or telecaller details),
+  // find the lead and ensure the page and parent selection are set.
+  useEffect(() => {
+    if (!selectedLead || !(selectedLead._id || selectedLead.id)) return;
+    if (!Array.isArray(leads) || leads.length === 0) return;
+
+    const effectivePerPage = !userChangedRows && selectedLead ? 2 : rowsPerPageChoice;
+    const targetId = String(selectedLead._id || selectedLead.id);
+    const idx = leads.findIndex((l) =>
+      [l._id, l.id, l.userId].some((k) => String(k) === targetId)
+    );
+    if (idx >= 0) {
+      const page = Math.floor(idx / effectivePerPage) + 1;
+      setCurrentPage(page);
+      // ensure parent selection is consistent (pass the full lead object)
+      onLeadSelect && onLeadSelect(leads[idx]);
+    }
+  }, [leads, selectedLead, rowsPerPageChoice, userChangedRows]);
 
   // Filter leads based on search term
   useEffect(() => {
@@ -168,7 +244,16 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     }
   }, [selectedLead, currentPage]);
 
-  if (leadLoading) {
+  // Determine whether we should show a generic leads loading state.
+  // Note: useApi defaults `loading` to true even when called in manual mode.
+  // For telecaller role we fetch assigned IDs then resolve details; use those flags
+  // instead of the auto `leadLoading` to avoid a permanent loader.
+  const showingLoadingSkeleton =
+    (role === "admin" && leadLoading) ||
+    (role === "telecaller" &&
+      (telecallerLeadsLoading || telecallerDetailsLoading));
+
+  if (showingLoadingSkeleton) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="animate-pulse">
@@ -183,7 +268,11 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
     );
   }
 
-  if (leadError) {
+  // Show an error only when admin lead fetch failed, or telecaller id fetch errored
+  const showingError =
+    (role === "admin" && leadError) ||
+    (role === "telecaller" && telecallerLeadsError);
+  if (showingError) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-center text-red-500">
