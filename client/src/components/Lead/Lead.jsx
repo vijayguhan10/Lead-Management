@@ -36,6 +36,7 @@ const Lead = () => {
   const [editLead, setEditLead] = useState(null);
   const [leads, setLeads] = useState([]);
   const [telecallers, setTelecallers] = useState([]);
+  const [telecallerFilter, setTelecallerFilter] = useState("all");
   const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
 
@@ -154,11 +155,23 @@ const Lead = () => {
     ? Math.round((assignedLeads / totalLeads) * 100)
     : 0;
 
-  const filteredLeads = leads.filter(
-    (lead) =>
+  const filteredLeads = leads.filter((lead) => {
+    // basic search match
+    const matchesSearch =
       lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      lead.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // telecaller filter: 'all', 'unassigned', or telecaller id
+    if (telecallerFilter === "all") return matchesSearch;
+    if (telecallerFilter === "unassigned")
+      return matchesSearch && !lead.assignedTo;
+    // specific telecaller id
+    return (
+      matchesSearch &&
+      (String(lead.assignedTo) === String(telecallerFilter) ||
+        String(lead.assignedTo?._id) === String(telecallerFilter))
+    );
+  });
 
   const indexOfLastLead = currentPage * leadsPerPage;
   const indexOfFirstLead = indexOfLastLead - leadsPerPage;
@@ -261,6 +274,32 @@ const Lead = () => {
             </>
           )}
         </div>
+        {/* Telecaller filter (admin only) */}
+        {role === "admin" && (
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor="telecaller-filter"
+              className="text-sm font-medium text-gray-700"
+            >
+              Filter by telecallers
+            </label>
+            <select
+              id="telecaller-filter"
+              className="px-4 py-2 bg-white shadow-sm border border-gray-200 rounded-md text-sm"
+              value={telecallerFilter}
+              onChange={(e) => setTelecallerFilter(e.target.value)}
+            >
+              <option value="all">All telecallers</option>
+              <option value="unassigned">Unassigned</option>
+              {telecallers.map((t) => (
+                <option key={t._id || t.id} value={t._id || t.id}>
+                  {t.name || t.fullName || t.firstName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="relative w-64">
           <input
             type="text"
@@ -302,9 +341,11 @@ const Lead = () => {
               <th className="py-3 px-4 text-left font-semibold border-b">
                 Source
               </th>
-              <th className="py-3 px-4 text-left font-semibold border-b">
-                Assigned
-              </th>
+              {role !== "telecaller" && (
+                <th className="py-3 px-4 text-left font-semibold border-b">
+                  Assigned
+                </th>
+              )}
               <th className="py-3 px-4 text-left font-semibold border-b">
                 Status
               </th>
@@ -351,37 +392,43 @@ const Lead = () => {
                   <td className="py-3 px-4 text-gray-600 border-b">
                     {lead.source}
                   </td>
-                  <td className="py-3 px-4 text-[#222] border-b">
-                    {lead.assignedTo ? (
-                      (() => {
-                        const assignedId = lead.assignedTo;
-                        const tc = telecallers.find((t) =>
-                          [t.id, t._id, t.userId, t.user?.id, t.user?._id].some(
-                            (k) => String(k) === String(assignedId)
-                          )
-                        );
+                  {role !== "telecaller" && (
+                    <td className="py-3 px-4 text-[#222] border-b">
+                      {lead.assignedTo ? (
+                        (() => {
+                          const assignedId = lead.assignedTo;
+                          const tc = telecallers.find((t) =>
+                            [
+                              t.id,
+                              t._id,
+                              t.userId,
+                              t.user?.id,
+                              t.user?._id,
+                            ].some((k) => String(k) === String(assignedId))
+                          );
 
-                        const name = tc
-                          ? tc.name || tc.fullName || tc.firstName
-                          : "Assigned";
-                        return (
-                          <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
-                            {name}
-                          </span>
-                        );
-                      })()
-                    ) : (
-                      <button
-                        className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
-                        onClick={() => {
-                          setTelecallerLead(lead);
-                          setShowTelecallerAssign(true);
-                        }}
-                      >
-                        Assign
-                      </button>
-                    )}
-                  </td>
+                          const name = tc
+                            ? tc.name || tc.fullName || tc.firstName
+                            : "Assigned";
+                          return (
+                            <span className="px-3 py-1 rounded-full bg-[#E6F9E5] text-[#16A34A] font-semibold shadow">
+                              {name}
+                            </span>
+                          );
+                        })()
+                      ) : (
+                        <button
+                          className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-semibold hover:bg-[#FFFDEB] transition"
+                          onClick={() => {
+                            setTelecallerLead(lead);
+                            setShowTelecallerAssign(true);
+                          }}
+                        >
+                          Assign
+                        </button>
+                      )}
+                    </td>
+                  )}
                   <td className="py-3 px-4 text-[#222] border-b">
                     <span
                       className={`px-3 py-1 rounded-full font-semibold shadow ${

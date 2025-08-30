@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaSearch,
   FaArrowLeft,
@@ -25,9 +25,9 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
 
   // Reset to first page when a lead is selected and keep currentPage within bounds
   useEffect(() => {
-    setCurrentPage(1);
     // If a lead is selected and the user hasn't manually changed rows-per-page,
-    // auto-set the rows to 2 for focused view.
+    // auto-set the rows to 2 for focused view. Do NOT force currentPage to 1 —
+    // that causes the table to jump to first page when selecting a lead on another page.
     if (selectedLead && !userChangedRows) {
       setRowsPerPageChoice(2);
     }
@@ -54,8 +54,27 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
   useEffect(() => {
     if (leadData) {
       setLeads(leadData);
+      // If parent passed selectedLead with only an _id (from query param),
+      // find it in the fetched leads and ensure the table paginates to it and selects it.
+      if (selectedLead && (selectedLead._id || selectedLead.id)) {
+        // determine effective leads-per-page: if we would auto-set rows to 2
+        // (when a lead is selected and the user hasn't changed the choice),
+        // use 2 for the page calculation to avoid a race.
+        const effectivePerPage =
+          !userChangedRows && selectedLead ? 2 : rowsPerPageChoice;
+        const targetId = String(selectedLead._id || selectedLead.id);
+        const idx = leadData.findIndex((l) =>
+          [l._id, l.id, l.userId].some((k) => String(k) === targetId)
+        );
+        if (idx >= 0) {
+          const page = Math.floor(idx / effectivePerPage) + 1;
+          setCurrentPage(page);
+          // ensure parent selection is consistent
+          onLeadSelect && onLeadSelect(leadData[idx]);
+        }
+      }
     }
-  }, [leadData]);
+  }, [leadData, selectedLead, rowsPerPageChoice, userChangedRows]);
 
   // Filter leads based on search term
   useEffect(() => {
@@ -70,7 +89,8 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
       );
       setFilteredLeads(filtered);
     }
-    setCurrentPage(1); // Reset to first page when searching
+    // Reset to first page only when user is actively searching.
+    if (searchTerm.trim()) setCurrentPage(1);
   }, [leads, searchTerm]);
 
   // Pagination
@@ -81,6 +101,20 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
   );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // refs to table rows so we can scroll a selected lead into view
+  const rowRefs = useRef({});
+
+  // when selectedLead prop changes, ensure the row is visible (after render)
+  useEffect(() => {
+    if (selectedLead && selectedLead._id) {
+      const rowEl = rowRefs.current[selectedLead._id];
+      if (rowEl && typeof rowEl.scrollIntoView === "function") {
+        // center the row in view for clarity
+        rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [selectedLead, currentPage]);
 
   if (leadLoading) {
     return (
@@ -182,6 +216,7 @@ const LeadsTable = ({ onLeadSelect, selectedLead }) => {
               currentLeads.map((lead) => (
                 <tr
                   key={lead._id}
+                  ref={(el) => (rowRefs.current[lead._id] = el)}
                   className={`hover:bg-gray-50 cursor-pointer transition-colors ${
                     selectedLead?._id === lead._id ? "bg-blue-50" : ""
                   }`}
