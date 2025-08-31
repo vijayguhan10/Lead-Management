@@ -102,7 +102,17 @@ const Ai = () => {
 
       {/* Lead Data Popup */}
       {leadPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur effect */}
+          <div
+            className="absolute inset-0 transition-opacity"
+            onClick={() => setLeadPopup(false)}
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px) brightness(0.8)",
+              WebkitBackdropFilter: "blur(10px) brightness(0.8)",
+            }}
+          ></div>
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-3xl mx-4 py-12 px-10 relative flex flex-col justify-center">
             <button
               className="absolute top-8 right-10 text-gray-500 hover:text-gray-700 text-3xl font-bold"
@@ -116,7 +126,6 @@ const Ai = () => {
             </h2>
             <div className="h-64 overflow-y-auto mb-8 w-full">
               <table className="min-w-full text-base rounded-xl overflow-hidden shadow border border-gray-100">
-               
                 <tbody>
                   {sampleLeads.map((lead, idx) => (
                     <tr

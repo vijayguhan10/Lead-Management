@@ -15,7 +15,16 @@ const Modal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop with blur effect */}
+      <div
+        className="absolute inset-0 transition-opacity"
+        style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px) brightness(0.8)',
+          WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+        }}
+      ></div>
       <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-5xl mx-4 py-6 px-8 relative flex flex-col justify-center max-h-[85vh] overflow-auto">
         <div className="w-full flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900 truncate">

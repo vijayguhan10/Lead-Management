@@ -630,7 +630,16 @@ const Lead = () => {
         />
       )}
       {showTelecallerAssign && telecallerLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur effect */}
+          <div
+            className="absolute inset-0 transition-opacity"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px) brightness(0.8)',
+              WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+            }}
+          ></div>
           <TelecallerAssignInfo
             lead={telecallerLead}
             telecallers={telecallers}

@@ -73,7 +73,15 @@ const assignedLeadsStat = {
 
 const LeadDetailsPopup = ({ lead, onClose }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/20 backdrop-blur-md"></div>
+    <div 
+      className="absolute inset-0 transition-opacity"
+      onClick={onClose}
+      style={{
+        background: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(10px) brightness(0.8)',
+        WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+      }}
+    ></div>
     <div className="relative w-full max-w-7xl mx-auto bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto">
       <Header onClose={onClose} />
       <div className="p-6 space-y-6 mt-6">
