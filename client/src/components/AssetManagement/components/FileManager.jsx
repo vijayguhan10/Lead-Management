@@ -44,15 +44,18 @@ const FileManager = ({
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter((file) =>
-        file.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter((file) => {
+        const fileName = file.originalName || file.name || file.fileName || "";
+        return fileName.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
 
     // Apply type filter
     if (filterType !== "all") {
       filtered = filtered.filter((file) => {
-        const ext = "." + file.name.split(".").pop().toLowerCase();
+        const fileName = file.originalName || file.name || file.fileName || "";
+        if (!fileName) return false;
+        const ext = "." + fileName.split(".").pop().toLowerCase();
         return FILE_TYPES[filterType]?.extensions.includes(ext);
       });
     }
@@ -63,8 +66,8 @@ const FileManager = ({
 
       switch (sortBy) {
         case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.originalName || a.name || a.fileName || "").toLowerCase();
+          bValue = (b.originalName || b.name || b.fileName || "").toLowerCase();
           break;
         case "size":
           aValue = a.size || 0;
@@ -75,8 +78,8 @@ const FileManager = ({
           bValue = new Date(b.uploadedAt || b.createdAt || 0);
           break;
         default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.originalName || a.name || a.fileName || "").toLowerCase();
+          bValue = (b.originalName || b.name || b.fileName || "").toLowerCase();
       }
 
       if (sortOrder === "asc") {
@@ -363,10 +366,10 @@ const FileManager = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                     {filteredFiles.map((file) => (
                       <FileCard
-                        key={file.id}
+                        key={file._id || file.id || Math.random()}
                         file={file}
-                        selected={selectedFiles.includes(file.id)}
-                        onSelect={() => handleFileSelect(file.id)}
+                        selected={selectedFiles.includes(file._id || file.id)}
+                        onSelect={() => handleFileSelect(file._id || file.id)}
                         onDownload={() => onDownload(file)}
                         onDelete={() => onDelete(file)}
                         onPreview={() => onPreview(file)}
@@ -410,10 +413,14 @@ const FileManager = ({
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredFiles.map((file) => (
                           <FileRow
-                            key={file.id}
+                            key={file._id || file.id || Math.random()}
                             file={file}
-                            selected={selectedFiles.includes(file.id)}
-                            onSelect={() => handleFileSelect(file.id)}
+                            selected={selectedFiles.includes(
+                              file._id || file.id
+                            )}
+                            onSelect={() =>
+                              handleFileSelect(file._id || file.id)
+                            }
                             onDownload={() => onDownload(file)}
                             onDelete={() => onDelete(file)}
                             onPreview={() => onPreview(file)}

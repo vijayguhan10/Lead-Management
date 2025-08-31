@@ -49,7 +49,9 @@ export class S3Service {
         },
       });
 
-      const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour expiry
+      const uploadUrl = await getSignedUrl(this.s3Client, command, { 
+        expiresIn: 3600
+      }); // 1 hour expiry
 
       this.logger.log(`Generated presigned upload URL for file: ${fileName}, key: ${key}`);
 
@@ -64,11 +66,14 @@ export class S3Service {
     }
   }
 
-  async generatePresignedDownloadUrl(key: string): Promise<string> {
+  async generatePresignedDownloadUrl(key: string, originalFileName?: string): Promise<string> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: key,
+        ResponseContentDisposition: originalFileName 
+          ? `attachment; filename="${originalFileName}"`
+          : 'attachment',
       });
 
       const downloadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour expiry

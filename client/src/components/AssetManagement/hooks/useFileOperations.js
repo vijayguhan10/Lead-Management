@@ -9,36 +9,37 @@ export const useFileOperations = (selectedLead) => {
 
   const { execute: getSignedUrl } = useApi("media", "/files/signed-url", {
     manual: true,
+    method: "POST",
   });
   const { execute } = useApi("media", "", { manual: true });
 
   // Fetch files for selected lead
+  const fetchFiles = async () => {
+    if (!selectedLead?._id) {
+      setFiles([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await execute({
+        endpoint: `/files/lead/${selectedLead._id}`,
+        method: "GET",
+      });
+      setFiles(response || []);
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      // Only show toast error once per lead
+      if (error.response?.status !== 404) {
+        toast.error("Failed to fetch files");
+      }
+      setFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFiles = async () => {
-      if (!selectedLead?._id) {
-        setFiles([]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const response = await execute({
-          endpoint: `/files/lead/${selectedLead._id}`,
-          method: "GET",
-        });
-        setFiles(response || []);
-      } catch (error) {
-        console.error("Error fetching files:", error);
-        // Only show toast error once per lead
-        if (error.response?.status !== 404) {
-          toast.error("Failed to fetch files");
-        }
-        setFiles([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFiles();
   }, [selectedLead?._id]); // Removed execute from dependencies
 
@@ -76,6 +77,7 @@ export const useFileOperations = (selectedLead) => {
 
         // Step 1: Get signed URL from backend
         const signedUrlResponse = await getSignedUrl({
+          method: "POST",
           data: {
             fileName: upload.file.name,
             fileType: upload.file.type,
@@ -98,32 +100,25 @@ export const useFileOperations = (selectedLead) => {
         });
 
         if (!uploadResponse.ok) {
-          throw new Error("Failed to upload file to S3");
+          const errorText = await uploadResponse.text();
+          console.error("S3 Upload Error:", uploadResponse.status, errorText);
+          throw new Error(
+            `Failed to upload file to S3: ${uploadResponse.status} ${errorText}`
+          );
         }
 
         setUploads((prev) =>
           prev.map((u) => (u.id === upload.id ? { ...u, progress: 80 } : u))
         );
 
-        // Step 3: Save file metadata to backend
-        const metadata = {
-          name: upload.file.name,
-          size: upload.file.size,
-          type: upload.file.type,
-          leadId: selectedLead._id,
-          organizationId: orgId,
-          s3Key: signedUrlResponse.key,
-          s3Url: signedUrlResponse.fileUrl,
-        };
-
-        const saveResponse = await execute({
-          endpoint: "/files",
+        // Step 3: Confirm upload completion to backend
+        await execute({
+          endpoint: `/files/${signedUrlResponse.fileId}/confirm`,
           method: "POST",
-          data: metadata,
         });
 
-        // Update files list with new file
-        setFiles((prev) => [...prev, saveResponse]);
+        // Refetch files to get the updated list from the server
+        await fetchFiles();
 
         // Mark upload as complete
         setUploads((prev) =>
@@ -148,6 +143,11 @@ export const useFileOperations = (selectedLead) => {
           )
         );
         toast.error(`Failed to upload ${upload.file.name}`);
+
+        // Remove failed upload from uploads after 3 seconds
+        setTimeout(() => {
+          setUploads((prev) => prev.filter((u) => u.id !== upload.id));
+        }, 3000);
       }
     }
   };
@@ -155,19 +155,24 @@ export const useFileOperations = (selectedLead) => {
   const handleDownload = async (file) => {
     try {
       const response = await execute({
-        endpoint: `/files/${file.id}/download`,
+        endpoint: `/files/${file._id || file.id}/download`,
         method: "GET",
       });
 
       // Create download link and trigger download
       const link = document.createElement("a");
       link.href = response.downloadUrl;
-      link.download = file.name;
+      link.download =
+        file.originalName || file.name || file.fileName || "download";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      toast.success(`Downloading ${file.name}`);
+      toast.success(
+        `Downloading ${
+          file.originalName || file.name || file.fileName || "file"
+        }`
+      );
     } catch (error) {
       console.error("Download failed:", error);
       toast.error("Failed to download file");
@@ -175,18 +180,22 @@ export const useFileOperations = (selectedLead) => {
   };
 
   const handleDelete = async (file) => {
-    if (!window.confirm(`Are you sure you want to delete "${file.name}"?`)) {
+    const fileName =
+      file.originalName || file.name || file.fileName || "this file";
+    if (!window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
       return;
     }
 
     try {
       await execute({
-        endpoint: `/files/${file.id}`,
+        endpoint: `/files/${file._id || file.id}`,
         method: "DELETE",
       });
 
-      setFiles((prev) => prev.filter((f) => f.id !== file.id));
-      toast.success(`${file.name} deleted successfully`);
+      setFiles((prev) =>
+        prev.filter((f) => (f._id || f.id) !== (file._id || file.id))
+      );
+      toast.success(`${fileName} deleted successfully`);
     } catch (error) {
       console.error("Delete failed:", error);
       toast.error("Failed to delete file");
@@ -195,7 +204,7 @@ export const useFileOperations = (selectedLead) => {
 
   const handleBulkDelete = async (selectedFileIds) => {
     const filesToDelete = files.filter((file) =>
-      selectedFileIds.includes(file.id)
+      selectedFileIds.includes(file._id || file.id)
     );
 
     if (
@@ -243,5 +252,6 @@ export const useFileOperations = (selectedLead) => {
     handleDelete,
     handleBulkDelete,
     handleBulkDownload,
+    refetchFiles: fetchFiles,
   };
 };

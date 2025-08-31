@@ -51,9 +51,9 @@ export class FileController {
     return this.fileService.getFilesByLead(leadId);
   }
 
-  @Get(':fileId')
-  async getFileById(@Param('fileId') fileId: string): Promise<File> {
-    return this.fileService.getFileById(fileId);
+  @Get('stats/summary')
+  async getFileStats(@Query('leadId') leadId?: string) {
+    return this.fileService.getFileStats(leadId);
   }
 
   @Get(':fileId/download')
@@ -62,6 +62,11 @@ export class FileController {
     const userId = user?.userId || user?.id || 'system-user';
     
     return this.fileService.generateDownloadUrl(fileId, userId);
+  }
+
+  @Get(':fileId')
+  async getFileById(@Param('fileId') fileId: string): Promise<File> {
+    return this.fileService.getFileById(fileId);
   }
 
   @Put(':fileId')
@@ -83,10 +88,5 @@ export class FileController {
     const userId = user?.userId || user?.id || 'system-user';
     
     return this.fileService.deleteFile(fileId, userId);
-  }
-
-  @Get('stats/summary')
-  async getFileStats(@Query('leadId') leadId?: string) {
-    return this.fileService.getFileStats(leadId);
   }
 }

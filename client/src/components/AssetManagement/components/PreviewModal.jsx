@@ -7,7 +7,9 @@ import {
 } from "../utils/fileUtils.jsx";
 
 const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
-  const fileType = getFileType(file.name);
+  const fileName =
+    file.originalName || file.name || file.fileName || "Unknown File";
+  const fileType = getFileType(fileName);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -27,10 +29,10 @@ const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
         <div className="p-6 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getFileIcon(file.name)}
+              {getFileIcon(fileName)}
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
-                  {file.name}
+                  {fileName}
                 </h3>
                 <p className="text-sm text-gray-500">
                   {formatFileSize(file.size)} •{" "}
@@ -55,10 +57,10 @@ const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
             {fileType === "image" && file.url ? (
               <img
                 src={file.url}
-                alt={file.name}
+                alt={fileName}
                 className="max-w-full max-h-96 object-contain"
               />
-            ) : fileType === "document" && file.name.endsWith(".pdf") ? (
+            ) : fileType === "document" && fileName.endsWith(".pdf") ? (
               <div className="text-center">
                 <FaFilePdf className="w-24 h-24 text-red-500 mx-auto mb-4" />
                 <p className="text-gray-600">PDF Preview not available</p>
@@ -68,7 +70,7 @@ const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
               </div>
             ) : (
               <div className="text-center">
-                {getFileIcon(file.name, "w-24 h-24 mx-auto mb-4")}
+                {getFileIcon(fileName, "w-24 h-24 mx-auto mb-4")}
                 <p className="text-gray-600">
                   Preview not available for this file type
                 </p>
@@ -89,14 +91,14 @@ const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
             Close
           </button>
           <button
-            onClick={onDownload}
+            onClick={() => onDownload(file)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <FaDownload className="w-4 h-4" />
             Download
           </button>
           <button
-            onClick={onDelete}
+            onClick={() => onDelete(file)}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
           >
             <FaTrashAlt className="w-4 h-4" />
