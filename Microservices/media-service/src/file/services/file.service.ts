@@ -125,7 +125,7 @@ export class FileService {
         throw new NotFoundException('File not available');
       }
 
-      const downloadUrl = await this.s3Service.generatePresignedDownloadUrl(file.s3Key);
+      const downloadUrl = await this.s3Service.generatePresignedDownloadUrl(file.s3Key, file.originalName);
       
       this.logger.log(`Generated download URL for file: ${file.originalName}, user: ${userId}`);
       

@@ -13,7 +13,9 @@ const FileCard = ({
   onDelete,
   onPreview,
 }) => {
-  const fileType = getFileType(file.name);
+  const fileName =
+    file.originalName || file.name || file.fileName || "Unknown File";
+  const fileType = getFileType(fileName);
 
   return (
     <div
@@ -39,18 +41,18 @@ const FileCard = ({
           {fileType === "image" && file.url ? (
             <img
               src={file.url}
-              alt={file.name}
+              alt={fileName}
               className="w-full h-full object-cover rounded-lg"
             />
           ) : (
-            getFileIcon(file.name, "w-8 h-8")
+            getFileIcon(fileName, "w-8 h-8")
           )}
         </div>
 
         {/* File Info */}
         <div className="text-center">
-          <h4 className="font-medium text-gray-900 truncate" title={file.name}>
-            {file.name}
+          <h4 className="font-medium text-gray-900 truncate" title={fileName}>
+            {fileName}
           </h4>
           <p className="text-xs text-gray-500 mt-1">
             {formatFileSize(file.size)}

@@ -204,7 +204,16 @@ export default function SmartAssign({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000050]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop with blur effect */}
+      <div
+        className="absolute inset-0 transition-opacity"
+        style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px) brightness(0.8)',
+          WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+        }}
+      ></div>
       <div
         className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 py-0 px-0 relative flex flex-col"
         style={{ maxHeight: "85vh" }}

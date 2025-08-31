@@ -7,97 +7,103 @@ import {
 } from "../utils/fileUtils.jsx";
 
 const PreviewModal = ({ file, onClose, onDownload, onDelete }) => {
-  const fileType = getFileType(file.name);
+  const fileName =
+    file.originalName || file.name || file.fileName || "Unknown File";
+  const fileType = getFileType(fileName);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        ></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 transition-opacity"
+        onClick={onClose}
+        style={{
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px) brightness(0.8)",
+          WebkitBackdropFilter: "blur(10px) brightness(0.8)",
+        }}
+      ></div>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-          {/* Header */}
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {getFileIcon(file.name)}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {file.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {formatFileSize(file.size)} •{" "}
-                    {new Date(
-                      file.uploadedAt || file.createdAt
-                    ).toLocaleDateString()}
-                  </p>
-                </div>
+      {/* Modal Content */}
+      <div className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {getFileIcon(fileName)}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  {fileName}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {formatFileSize(file.size)} •{" "}
+                  {new Date(
+                    file.uploadedAt || file.createdAt
+                  ).toLocaleDateString()}
+                </p>
               </div>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaTimes className="w-6 h-6" />
-              </button>
             </div>
-          </div>
-
-          {/* Content */}
-          <div className="px-4 py-5 sm:px-6">
-            <div className="bg-gray-100 rounded-lg p-8 flex items-center justify-center min-h-96">
-              {fileType === "image" && file.url ? (
-                <img
-                  src={file.url}
-                  alt={file.name}
-                  className="max-w-full max-h-96 object-contain"
-                />
-              ) : fileType === "document" && file.name.endsWith(".pdf") ? (
-                <div className="text-center">
-                  <FaFilePdf className="w-24 h-24 text-red-500 mx-auto mb-4" />
-                  <p className="text-gray-600">PDF Preview not available</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Download to view the document
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  {getFileIcon(file.name, "w-24 h-24 mx-auto mb-4")}
-                  <p className="text-gray-600">
-                    Preview not available for this file type
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Download to view the file
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button
-              onClick={onDownload}
-              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              <FaDownload className="w-4 h-4 mr-2" />
-              Download
-            </button>
-            <button
-              onClick={onDelete}
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              <FaTrashAlt className="w-4 h-4 mr-2" />
-              Delete
-            </button>
             <button
               onClick={onClose}
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Close
+              <FaTimes className="w-6 h-6" />
             </button>
           </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="bg-gray-100 rounded-lg p-8 flex items-center justify-center min-h-96">
+            {fileType === "image" && file.url ? (
+              <img
+                src={file.url}
+                alt={fileName}
+                className="max-w-full max-h-96 object-contain"
+              />
+            ) : fileType === "document" && fileName.endsWith(".pdf") ? (
+              <div className="text-center">
+                <FaFilePdf className="w-24 h-24 text-red-500 mx-auto mb-4" />
+                <p className="text-gray-600">PDF Preview not available</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Download to view the document
+                </p>
+              </div>
+            ) : (
+              <div className="text-center">
+                {getFileIcon(fileName, "w-24 h-24 mx-auto mb-4")}
+                <p className="text-gray-600">
+                  Preview not available for this file type
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Download to view the file
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => onDownload(file)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <FaDownload className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            onClick={() => onDelete(file)}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
+            <FaTrashAlt className="w-4 h-4" />
+            Delete
+          </button>
         </div>
       </div>
     </div>

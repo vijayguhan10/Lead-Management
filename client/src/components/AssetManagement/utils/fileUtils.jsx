@@ -57,6 +57,9 @@ export const formatFileSize = (bytes) => {
 };
 
 export const getFileType = (filename) => {
+  if (!filename || typeof filename !== "string") {
+    return "other";
+  }
   const ext = "." + filename.split(".").pop().toLowerCase();
   for (const [type, config] of Object.entries(FILE_TYPES)) {
     if (config.extensions.includes(ext)) {
