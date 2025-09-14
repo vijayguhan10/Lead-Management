@@ -15,7 +15,7 @@ A comprehensive lead management system built with React frontend and NestJS micr
 - npm or yarn
 
 ### Quick Start
-
+.
 1. **Clone and Install Dependencies**
 
    ```bash
