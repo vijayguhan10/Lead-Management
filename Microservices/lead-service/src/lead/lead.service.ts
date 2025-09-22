@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Lead, LeadDocument, LeadStatus } from './schema/lead.schema';
 import { LeadDto } from './dto/lead.dto';
 import { TelecallerClient } from '../telecaller/telecaller.client';
@@ -38,7 +38,7 @@ export class LeadService {
     const organizationId = param.organizationId;
     const filter: any = {};
 
-    filter.organizationId = new Types.ObjectId(organizationId);
+    if (organizationId) filter.organizationId = organizationId;
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (assignedTo) filter.assignedTo = assignedTo;
@@ -269,11 +269,32 @@ export class LeadService {
       .exec();
   }
 
-  async updateNotesTagsInterested(id: string, notes: string, tags: string[], interestedIn: string[]): Promise<Lead> {
+  async updateNotesTagsInterested(
+    id: string,
+    notes: string,
+    tags: string[],
+    interestedIn: string[],
+    nextFollowUp?: Date | string,
+    lastContacted?: Date | string,
+  ): Promise<Lead> {
     const update: any = {};
     if (typeof notes === 'string') update.notes = notes;
     if (Array.isArray(tags)) update.tags = tags;
     if (Array.isArray(interestedIn)) update.interestedIn = interestedIn;
+    if (nextFollowUp) {
+      const dt = nextFollowUp instanceof Date ? nextFollowUp : new Date(nextFollowUp);
+      if (isNaN(dt.getTime())) {
+        throw new BadRequestException('Invalid nextFollowUp datetime');
+      }
+      update.nextFollowUp = dt;
+    }
+    if (lastContacted) {
+      const lc = lastContacted instanceof Date ? lastContacted : new Date(lastContacted);
+      if (isNaN(lc.getTime())) {
+        throw new BadRequestException('Invalid lastContacted date');
+      }
+      update.lastContacted = lc;
+    }
     const updatedLead = await this.leadModel
       .findByIdAndUpdate(id, update, { new: true })
       .exec();
@@ -281,5 +302,174 @@ export class LeadService {
       throw new NotFoundException(`Lead with ID ${id} not found`);
     }
     return updatedLead;
+  }
+
+  // Export leads to XLSX buffer. Optionally filter by organizationId or query filters.
+  async exportLeads(filters: any = {}): Promise<Buffer> {
+    // Build filter similar to findAllOrganizationLeads
+    const queryFilter: any = {};
+    if (filters.organizationId) {
+      queryFilter.organizationId = filters.organizationId;
+    }
+    // apply optional status/priority/assignedTo/source/tags filters
+    if (filters.status) queryFilter.status = filters.status;
+    if (filters.priority) queryFilter.priority = filters.priority;
+    if (filters.assignedTo) queryFilter.assignedTo = filters.assignedTo;
+    if (filters.source) queryFilter.source = filters.source;
+    if (filters.tags) queryFilter.tags = { $in: Array.isArray(filters.tags) ? filters.tags : [filters.tags] };
+
+    const leads = await this.leadModel.find(queryFilter).lean().exec();
+
+    // Build rows
+    const rows = leads.map((l: any) => ({
+      _id: l._id?.toString(),
+      name: l.name || '',
+      phone: l.phone || '',
+      email: l.email || '',
+      source: l.source || '',
+      priority: l.priority || '',
+      status: l.status || '',
+      assignedTo: l.assignedTo ? (l.assignedTo.name || l.assignedTo.toString()) : '',
+      lastContacted: l.lastContacted ? new Date(l.lastContacted).toISOString() : '',
+      nextFollowUp: l.nextFollowUp ? new Date(l.nextFollowUp).toISOString() : '',
+      interestedIn: Array.isArray(l.interestedIn) ? l.interestedIn.join('; ') : (l.interestedIn || ''),
+      tags: Array.isArray(l.tags) ? l.tags.join('; ') : (l.tags || ''),
+      notes: l.notes || '',
+      company: l.company || '',
+      position: l.position || '',
+      industry: l.industry || '',
+      location: l.location || '',
+      pincode: l.pincode || '',
+      conversionScore: l.conversionScore || '',
+      createdBy: l.createdBy || '',
+      organizationId: l.organizationId ? l.organizationId.toString() : '',
+    }));
+
+    // Generate XLSX via xlsx package
+    // Use require to avoid import overhead
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const XLSX = require('xlsx');
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return buffer;
+  }
+
+  // Generate a sample XLSX file for imports (header row + example row)
+  async generateImportSample(): Promise<Buffer> {
+    const XLSX = require('xlsx');
+    const sampleRows = [
+      {
+        name: 'John Doe',
+        phone: '9999999999',
+        email: 'john.doe@example.com',
+        source: 'Website',
+        priority: 'Medium',
+        status: 'New',
+        assignedTo: '',
+        lastContacted: '',
+        nextFollowUp: '',
+        interestedIn: 'Product A',
+        tags: 'lead,import',
+        notes: 'Imported sample',
+        company: 'Example Co',
+        position: 'Manager',
+        industry: 'Software',
+        location: 'Chennai',
+        pincode: '600001',
+        conversionScore: '0',
+        createdBy: '',
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'SampleLeads');
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return buffer;
+  }
+
+  // Import leads from a base64-encoded XLSX. Returns summary of created/updated records.
+  async importLeadsFromBase64(fileBase64: string, organizationId: string, createdBy?: string): Promise<{ created: number; updated: number; errors: string[] }> {
+    const result = { created: 0, updated: 0, errors: [] as string[] };
+    if (!fileBase64) {
+      throw new BadRequestException('No file content provided');
+    }
+
+    // Decode base64 to buffer
+    const buffer = Buffer.from(fileBase64, 'base64');
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const XLSX = require('xlsx');
+    let wb;
+    try {
+      wb = XLSX.read(buffer, { type: 'buffer' });
+    } catch (err) {
+        throw new BadRequestException('Invalid XLSX file: ' + (err?.message || String(err)));
+    }
+
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    if (!ws) {
+      throw new BadRequestException('No sheet found in XLSX');
+    }
+
+    const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    for (const [idx, row] of rows.entries()) {
+      try {
+        const phone = (row.phone || row.Phone || '').toString().trim();
+        if (!phone) {
+          result.errors.push(`Row ${idx + 2}: missing phone`);
+          continue;
+        }
+
+        // Normalize lead data
+        const leadData: any = {
+          name: row.name || row.Name || '',
+          phone,
+          email: row.email || row.Email || '',
+          source: row.source || row.Source || '',
+          priority: row.priority || row.Priority || '',
+          status: row.status || row.Status || '',
+          assignedTo: row.assignedTo || row.AssignedTo || undefined,
+          lastContacted: row.lastContacted || row.LastContacted || undefined,
+          nextFollowUp: row.nextFollowUp || row.NextFollowUp || undefined,
+          interestedIn: row.interestedIn || row.InterestedIn || undefined,
+          tags: row.tags || row.Tags || undefined,
+          notes: row.notes || row.Notes || undefined,
+          company: row.company || row.Company || undefined,
+          position: row.position || row.Position || undefined,
+          industry: row.industry || row.Industry || undefined,
+          location: row.location || row.Location || undefined,
+          pincode: row.pincode || row.Pincode || undefined,
+          conversionScore: row.conversionScore || row.ConversionScore || undefined,
+          createdBy: createdBy || (row.createdBy || row.CreatedBy || undefined),
+        };
+
+        // Attach organizationId when creating/updating
+          if (organizationId) leadData.organizationId = organizationId;
+
+        // Try to find existing lead by phone + organization
+        const existing = await this.leadModel.findOne({ phone, organizationId: leadData.organizationId }).exec();
+        if (existing) {
+          // Update fields that are provided
+          Object.keys(leadData).forEach((k) => {
+            if (leadData[k] !== undefined && k !== 'organizationId') existing[k] = leadData[k];
+          });
+          await existing.save();
+          result.updated++;
+        } else {
+          const created = new this.leadModel(leadData);
+          await created.save();
+          result.created++;
+        }
+      } catch (err) {
+        result.errors.push(`Row ${idx + 2}: ${err.message || String(err)}`);
+      }
+    }
+
+    return result;
   }
 }

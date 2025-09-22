@@ -9,6 +9,8 @@ import {
   Query,
   Patch,
   UseGuards,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
@@ -28,6 +30,43 @@ export class LeadController {
   @Get('/getOrganizationLeads/:organizationId')
   findAllOrganizationLeads(@Query() query, @Param() param): Promise<Lead[]> {
     return this.leadService.findAllOrganizationLeads(query, param);
+  }
+
+  // Export leads to XLSX.
+  @Get('export')
+  async exportLeads(@Query() query: any, @Res() res: any) {
+    // Require organizationId to be supplied by the frontend
+    if (!query?.organizationId) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ message: 'organizationId query parameter is required' });
+    }
+    const buffer = await this.leadService.exportLeads(query);
+    const filename = `leads_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(HttpStatus.OK).send(buffer);
+  }
+
+  // Download a sample XLSX for imports
+  @Get('import/sample')
+  async downloadImportSample(@Res() res: any) {
+    const buffer = await this.leadService.generateImportSample();
+    const filename = `leads_import_sample.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(HttpStatus.OK).send(buffer);
+  }
+
+  // Import leads - accept base64 encoded file payload
+  @Post('import')
+  async importLeads(@Body() body: { fileBase64: string; organizationId?: string; createdBy?: string }) {
+    const { fileBase64 } = body;
+  const organizationId = body?.organizationId ? String(body.organizationId) : '';
+  const createdBy = body?.createdBy ? String(body.createdBy) : undefined;
+    if (!fileBase64) {
+      return { error: 'fileBase64 is required' };
+    }
+    const result = await this.leadService.importLeadsFromBase64(fileBase64, organizationId, createdBy);
+    return result;
   }
 
   @Get(':id')
@@ -112,8 +151,10 @@ export class LeadController {
     @Param('id') id: string,
     @Body('notes') notes: string,
     @Body('tags') tags: string[],
-    @Body('interestedIn') interestedIn: string[]
+    @Body('interestedIn') interestedIn: string[],
+    @Body('nextFollowUp') nextFollowUp?: Date | string,
+    @Body('lastContacted') lastContacted?: Date | string,
   ): Promise<Lead> {
-    return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn);
+    return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn, nextFollowUp, lastContacted);
   }
 }

@@ -3,6 +3,25 @@ import { FaUserEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useApi } from "../../hooks/useApi";
 
+// Helpers to convert between Date and input[type=datetime-local] string in local timezone
+const toLocalDateTimeInput = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+};
+
+const parseLocalDateTime = (dateTimeString) => {
+  if (!dateTimeString) return undefined;
+  const [datePart, timePart] = dateTimeString.split("T");
+  if (!timePart) return new Date(datePart);
+  const [year, month, day] = datePart.split("-").map((s) => Number(s));
+  const [hour, minute] = timePart.split(":").map((s) => Number(s));
+  return new Date(year, month - 1, day, hour || 0, minute || 0);
+};
+
 const LeadPriority = ["Low", "Medium", "High"];
 const LeadStatus = ["New", "Qualified", "Contacted", "Converted", "Pending"];
 
@@ -45,7 +64,7 @@ export default function EditLead({
           ? new Date(data.lastContacted).toISOString().slice(0, 10)
           : "",
         nextFollowUp: data.nextFollowUp
-          ? new Date(data.nextFollowUp).toISOString().slice(0, 10)
+          ? toLocalDateTimeInput(data.nextFollowUp)
           : "",
         interestedIn: Array.isArray(data.interestedIn)
           ? data.interestedIn.join(", ")
@@ -107,6 +126,12 @@ export default function EditLead({
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
           : [],
+        nextFollowUp: form.nextFollowUp
+          ? parseLocalDateTime(form.nextFollowUp)
+          : undefined,
+        lastContacted: form.lastContacted
+          ? new Date(form.lastContacted)
+          : undefined,
       };
       method = "PATCH";
       endpoint = `/leads/${leadId}/notes`;
@@ -132,7 +157,7 @@ export default function EditLead({
           ? new Date(form.lastContacted)
           : undefined,
         nextFollowUp: form.nextFollowUp
-          ? new Date(form.nextFollowUp)
+          ? parseLocalDateTime(form.nextFollowUp)
           : undefined,
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
@@ -169,9 +194,9 @@ export default function EditLead({
         <div
           className="absolute inset-0 transition-opacity"
           style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px) brightness(0.8)',
-            WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+            background: "rgba(255, 255, 255, 0.1)",
+            backdropFilter: "blur(10px) brightness(0.8)",
+            WebkitBackdropFilter: "blur(10px) brightness(0.8)",
           }}
         ></div>
         <div className="bg-white rounded-xl p-8">
@@ -188,19 +213,36 @@ export default function EditLead({
         className="absolute inset-0 transition-opacity"
         onClick={onClose}
         style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px) brightness(0.8)',
-          WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px) brightness(0.8)",
+          WebkitBackdropFilter: "blur(10px) brightness(0.8)",
         }}
       ></div>
       <div
         className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 py-0 px-0 relative flex flex-col"
         style={{ maxHeight: "90vh" }}
       >
-        <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-gray-100 rounded-t-3xl ">
-          <div className="flex items-center gap-3">
-            <FaUserEdit className="text-[#16A34A] text-2xl" />
-            <h2 className="text-2xl font-extrabold text-[#222]">Edit Lead</h2>
+        <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-gray-100 rounded-t-3xl">
+          <div className="flex items-center gap-3 min-w-0">
+            <FaUserEdit className="text-[#16A34A] text-2xl flex-shrink-0" />
+            <div className="flex items-center gap-4 min-w-0">
+              <h2 className="text-2xl font-extrabold text-[#222] truncate">
+                Edit Lead
+              </h2>
+              <div className="text-base text-gray-700 truncate flex items-center gap-2">
+                {form?.name ? (
+                  <span className="font-semibold text-[#111]">{form.name}</span>
+                ) : (
+                  <span className="italic">Unnamed Lead</span>
+                )}
+                {form?.phone ? (
+                  <span className="text-gray-400">
+                    {" "}
+                    &nbsp;•&nbsp; {form.phone}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </div>
           <button
             className="text-gray-400 hover:text-[#222] text-3xl font-bold transition"
@@ -444,8 +486,7 @@ export default function EditLead({
                   />
                 </div>
               </div>
-
-              {role !== "telecaller" && (
+              {role !== "telecaller" ? (
                 <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
                   <h3 className="text-lg font-bold text-[#222] mb-4">
                     Dates & Other
@@ -476,11 +517,12 @@ export default function EditLead({
                       </label>
                       <input
                         id="nextFollowUp_input"
-                        type="date"
+                        type="datetime-local"
                         name="nextFollowUp"
                         value={form.nextFollowUp || ""}
                         onChange={handleChange}
                         className="input"
+                        aria-label="Next follow up datetime"
                       />
                     </div>
                     <div>
@@ -529,6 +571,40 @@ export default function EditLead({
                           handleArrayChange("attachments", e.target.value)
                         }
                         className="input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Telecaller view: compact dates panel so telecallers can schedule follow-ups
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
+                  <h4 className="text-md font-bold text-[#222] mb-2">Dates</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="font-semibold text-[#222] block">
+                        Last Contacted
+                      </label>
+                      <input
+                        id="lastContacted_input"
+                        type="date"
+                        name="lastContacted"
+                        value={form.lastContacted || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-[#222] block">
+                        Next Follow Up
+                      </label>
+                      <input
+                        id="nextFollowUp_input"
+                        type="datetime-local"
+                        name="nextFollowUp"
+                        value={form.nextFollowUp || ""}
+                        onChange={handleChange}
+                        className="input"
+                        aria-label="Next follow up datetime"
                       />
                     </div>
                   </div>
