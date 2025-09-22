@@ -40,6 +40,8 @@ const Lead = () => {
   const [showSmartAssign, setShowSmartAssign] = useState(false);
   const [loading, setLoading] = useState(false); // keep a local fallback for UX where needed
   const [rowsPerPageChoice, setRowsPerPageChoice] = useState(6);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   const orgId =
     localStorage.getItem("organizationId") ||
@@ -253,8 +255,57 @@ const Lead = () => {
 
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      alert(`Selected file: ${file.name}`);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const dataUrl = evt.target.result; // data:application/...;base64,XXXX
+      const base64 = dataUrl.split(',')[1];
+      try {
+        const token = localStorage.getItem('jwt_token');
+        const orgId = localStorage.getItem('organizationId') || localStorage.getItem('orgId') || '';
+        const res = await fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/import`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ fileBase64: base64, organizationId: orgId, createdBy: localStorage.getItem('userId') || undefined }),
+        });
+        const json = await res.json();
+        if (res.ok) {
+          toast.success(`Import completed: created ${json.created}, updated ${json.updated}`);
+          setShowImportModal(false);
+          refetchLeads();
+        } else {
+          toast.error(json.error || 'Import failed');
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.message || 'Import failed');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const downloadImportSample = async () => {
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const url = `${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/import/sample`;
+      const res = await fetch(url, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) throw new Error('Failed to fetch sample');
+      const blob = await res.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = 'leads_import_sample.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success('Sample downloaded');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to download sample');
     }
   };
 
@@ -314,15 +365,12 @@ const Lead = () => {
               >
                 <FaDownload /> Export
               </button>
-              <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2 cursor-pointer">
+              <button
+                className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2"
+                onClick={() => setShowImportModal(true)}
+              >
                 <FaFileImport /> Import
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  style={{ display: "none" }}
-                  onChange={handleImportExcel}
-                />
-              </label>
+              </button>
               <button
                 className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
                 onClick={() => setShowIndividualAssign(true)}
@@ -711,6 +759,49 @@ const Lead = () => {
             // keep modal open to let user inspect results; they can close manually
           }}
         />
+      )}
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 transition-opacity"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px) brightness(0.8)',
+              WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+            }}
+          ></div>
+          <div className="bg-white rounded-lg shadow-xl p-6 z-10 w-96">
+            <h3 className="text-lg font-bold mb-4">Import Leads</h3>
+            <p className="text-sm text-gray-600 mb-4">You can download a sample file to see the required format, or upload your .xlsx file to import leads.</p>
+            <div className="flex gap-2 mb-4">
+              <button
+                className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:opacity-90"
+                onClick={downloadImportSample}
+              >
+                Download Sample
+              </button>
+              <label className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold cursor-pointer">
+                Upload File
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded-lg"
+                onClick={() => setShowImportModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {editLead && (
         <EditLead

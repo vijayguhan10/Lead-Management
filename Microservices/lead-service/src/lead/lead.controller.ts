@@ -11,7 +11,6 @@ import {
   UseGuards,
   Res,
   HttpStatus,
-  Req,
 } from '@nestjs/common';
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
@@ -37,7 +36,7 @@ export class LeadController {
   @Get('export')
   async exportLeads(@Query() query: any, @Res() res: any) {
     // Require organizationId to be supplied by the frontend
-    if (!query || !query.organizationId) {
+    if (!query?.organizationId) {
       return res.status(HttpStatus.BAD_REQUEST).json({ message: 'organizationId query parameter is required' });
     }
     const buffer = await this.leadService.exportLeads(query);
@@ -45,6 +44,29 @@ export class LeadController {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.status(HttpStatus.OK).send(buffer);
+  }
+
+  // Download a sample XLSX for imports
+  @Get('import/sample')
+  async downloadImportSample(@Res() res: any) {
+    const buffer = await this.leadService.generateImportSample();
+    const filename = `leads_import_sample.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(HttpStatus.OK).send(buffer);
+  }
+
+  // Import leads - accept base64 encoded file payload
+  @Post('import')
+  async importLeads(@Body() body: { fileBase64: string; organizationId?: string; createdBy?: string }) {
+    const { fileBase64 } = body;
+  const organizationId = body?.organizationId ? String(body.organizationId) : '';
+  const createdBy = body?.createdBy ? String(body.createdBy) : undefined;
+    if (!fileBase64) {
+      return { error: 'fileBase64 is required' };
+    }
+    const result = await this.leadService.importLeadsFromBase64(fileBase64, organizationId, createdBy);
+    return result;
   }
 
   @Get(':id')
