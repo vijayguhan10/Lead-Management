@@ -3,6 +3,25 @@ import { FaUserEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useApi } from "../../hooks/useApi";
 
+// Helpers to convert between Date and input[type=datetime-local] string in local timezone
+const toLocalDateTimeInput = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+};
+
+const parseLocalDateTime = (dateTimeString) => {
+  if (!dateTimeString) return undefined;
+  const [datePart, timePart] = dateTimeString.split("T");
+  if (!timePart) return new Date(datePart);
+  const [year, month, day] = datePart.split("-").map((s) => Number(s));
+  const [hour, minute] = timePart.split(":").map((s) => Number(s));
+  return new Date(year, month - 1, day, hour || 0, minute || 0);
+};
+
 const LeadPriority = ["Low", "Medium", "High"];
 const LeadStatus = ["New", "Qualified", "Contacted", "Converted", "Pending"];
 
@@ -44,9 +63,7 @@ export default function EditLead({
         lastContacted: data.lastContacted
           ? new Date(data.lastContacted).toISOString().slice(0, 10)
           : "",
-        nextFollowUp: data.nextFollowUp
-          ? new Date(data.nextFollowUp).toISOString().slice(0, 10)
-          : "",
+        nextFollowUp: data.nextFollowUp ? toLocalDateTimeInput(data.nextFollowUp) : "",
         interestedIn: Array.isArray(data.interestedIn)
           ? data.interestedIn.join(", ")
           : data.interestedIn || "",
@@ -107,6 +124,8 @@ export default function EditLead({
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
           : [],
+        nextFollowUp: form.nextFollowUp ? parseLocalDateTime(form.nextFollowUp) : undefined,
+        lastContacted: form.lastContacted ? new Date(form.lastContacted) : undefined,
       };
       method = "PATCH";
       endpoint = `/leads/${leadId}/notes`;
@@ -131,9 +150,7 @@ export default function EditLead({
         lastContacted: form.lastContacted
           ? new Date(form.lastContacted)
           : undefined,
-        nextFollowUp: form.nextFollowUp
-          ? new Date(form.nextFollowUp)
-          : undefined,
+        nextFollowUp: form.nextFollowUp ? parseLocalDateTime(form.nextFollowUp) : undefined,
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
           : [],
@@ -197,10 +214,22 @@ export default function EditLead({
         className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 py-0 px-0 relative flex flex-col"
         style={{ maxHeight: "90vh" }}
       >
-        <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-gray-100 rounded-t-3xl ">
-          <div className="flex items-center gap-3">
-            <FaUserEdit className="text-[#16A34A] text-2xl" />
-            <h2 className="text-2xl font-extrabold text-[#222]">Edit Lead</h2>
+        <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-gray-100 rounded-t-3xl">
+          <div className="flex items-center gap-3 min-w-0">
+            <FaUserEdit className="text-[#16A34A] text-2xl flex-shrink-0" />
+            <div className="flex items-center gap-4 min-w-0">
+              <h2 className="text-2xl font-extrabold text-[#222] truncate">Edit Lead</h2>
+              <div className="text-base text-gray-700 truncate flex items-center gap-2">
+                {form?.name ? (
+                  <span className="font-semibold text-[#111]">{form.name}</span>
+                ) : (
+                  <span className="italic">Unnamed Lead</span>
+                )}
+                {form?.phone ? (
+                  <span className="text-gray-400"> &nbsp;•&nbsp; {form.phone}</span>
+                ) : null}
+              </div>
+            </div>
           </div>
           <button
             className="text-gray-400 hover:text-[#222] text-3xl font-bold transition"
@@ -444,96 +473,126 @@ export default function EditLead({
                   />
                 </div>
               </div>
-
-              {role !== "telecaller" && (
-                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
-                  <h3 className="text-lg font-bold text-[#222] mb-4">
-                    Dates & Other
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label
-                        htmlFor="lastContacted_input"
-                        className="font-semibold text-[#222]"
-                      >
-                        Last Contacted
-                      </label>
-                      <input
-                        id="lastContacted_input"
-                        type="date"
-                        name="lastContacted"
-                        value={form.lastContacted || ""}
-                        onChange={handleChange}
-                        className="input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="nextFollowUp_input"
-                        className="font-semibold text-[#222]"
-                      >
-                        Next Follow Up
-                      </label>
-                      <input
-                        id="nextFollowUp_input"
-                        type="date"
-                        name="nextFollowUp"
-                        value={form.nextFollowUp || ""}
-                        onChange={handleChange}
-                        className="input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="conversionScore_input"
-                        className="font-semibold text-[#222]"
-                      >
-                        Conversion Score
-                      </label>
-                      <input
-                        id="conversionScore_input"
-                        type="number"
-                        name="conversionScore"
-                        value={form.conversionScore || ""}
-                        onChange={handleChange}
-                        className="input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="createdBy_input"
-                        className="font-semibold text-[#222]"
-                      >
-                        Created By
-                      </label>
-                      <input
-                        id="createdBy_input"
-                        name="createdBy"
-                        value={form.createdBy || ""}
-                        onChange={handleChange}
-                        className="input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="attachments_input"
-                        className="font-semibold text-[#222]"
-                      >
-                        Attachments (comma separated)
-                      </label>
-                      <input
-                        id="attachments_input"
-                        name="attachments"
-                        value={form.attachments || ""}
-                        onChange={(e) =>
-                          handleArrayChange("attachments", e.target.value)
-                        }
-                        className="input"
-                      />
+                {role !== "telecaller" ? (
+                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+                    <h3 className="text-lg font-bold text-[#222] mb-4">
+                      Dates & Other
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label
+                          htmlFor="lastContacted_input"
+                          className="font-semibold text-[#222]"
+                        >
+                          Last Contacted
+                        </label>
+                        <input
+                          id="lastContacted_input"
+                          type="date"
+                          name="lastContacted"
+                          value={form.lastContacted || ""}
+                          onChange={handleChange}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="nextFollowUp_input"
+                          className="font-semibold text-[#222]"
+                        >
+                          Next Follow Up
+                        </label>
+                        <input
+                          id="nextFollowUp_input"
+                          type="datetime-local"
+                          name="nextFollowUp"
+                          value={form.nextFollowUp || ""}
+                          onChange={handleChange}
+                          className="input"
+                          aria-label="Next follow up datetime"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="conversionScore_input"
+                          className="font-semibold text-[#222]"
+                        >
+                          Conversion Score
+                        </label>
+                        <input
+                          id="conversionScore_input"
+                          type="number"
+                          name="conversionScore"
+                          value={form.conversionScore || ""}
+                          onChange={handleChange}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="createdBy_input"
+                          className="font-semibold text-[#222]"
+                        >
+                          Created By
+                        </label>
+                        <input
+                          id="createdBy_input"
+                          name="createdBy"
+                          value={form.createdBy || ""}
+                          onChange={handleChange}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="attachments_input"
+                          className="font-semibold text-[#222]"
+                        >
+                          Attachments (comma separated)
+                        </label>
+                        <input
+                          id="attachments_input"
+                          name="attachments"
+                          value={form.attachments || ""}
+                          onChange={(e) =>
+                            handleArrayChange("attachments", e.target.value)
+                          }
+                          className="input"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  // Telecaller view: compact dates panel so telecallers can schedule follow-ups
+                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
+                    <h4 className="text-md font-bold text-[#222] mb-2">Dates</h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label className="font-semibold text-[#222] block">Last Contacted</label>
+                        <input
+                          id="lastContacted_input"
+                          type="date"
+                          name="lastContacted"
+                          value={form.lastContacted || ""}
+                          onChange={handleChange}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-[#222] block">Next Follow Up</label>
+                        <input
+                          id="nextFollowUp_input"
+                          type="datetime-local"
+                          name="nextFollowUp"
+                          value={form.nextFollowUp || ""}
+                          onChange={handleChange}
+                          className="input"
+                          aria-label="Next follow up datetime"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
           </form>
         </div>

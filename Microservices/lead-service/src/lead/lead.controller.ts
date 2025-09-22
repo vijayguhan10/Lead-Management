@@ -112,8 +112,10 @@ export class LeadController {
     @Param('id') id: string,
     @Body('notes') notes: string,
     @Body('tags') tags: string[],
-    @Body('interestedIn') interestedIn: string[]
+    @Body('interestedIn') interestedIn: string[],
+    @Body('nextFollowUp') nextFollowUp?: Date | string,
+    @Body('lastContacted') lastContacted?: Date | string,
   ): Promise<Lead> {
-    return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn);
+    return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn, nextFollowUp, lastContacted);
   }
 }

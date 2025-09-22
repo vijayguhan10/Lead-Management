@@ -269,11 +269,32 @@ export class LeadService {
       .exec();
   }
 
-  async updateNotesTagsInterested(id: string, notes: string, tags: string[], interestedIn: string[]): Promise<Lead> {
+  async updateNotesTagsInterested(
+    id: string,
+    notes: string,
+    tags: string[],
+    interestedIn: string[],
+    nextFollowUp?: Date | string,
+    lastContacted?: Date | string,
+  ): Promise<Lead> {
     const update: any = {};
     if (typeof notes === 'string') update.notes = notes;
     if (Array.isArray(tags)) update.tags = tags;
     if (Array.isArray(interestedIn)) update.interestedIn = interestedIn;
+    if (nextFollowUp) {
+      const dt = nextFollowUp instanceof Date ? nextFollowUp : new Date(nextFollowUp);
+      if (isNaN(dt.getTime())) {
+        throw new BadRequestException('Invalid nextFollowUp datetime');
+      }
+      update.nextFollowUp = dt;
+    }
+    if (lastContacted) {
+      const lc = lastContacted instanceof Date ? lastContacted : new Date(lastContacted);
+      if (isNaN(lc.getTime())) {
+        throw new BadRequestException('Invalid lastContacted date');
+      }
+      update.lastContacted = lc;
+    }
     const updatedLead = await this.leadModel
       .findByIdAndUpdate(id, update, { new: true })
       .exec();
