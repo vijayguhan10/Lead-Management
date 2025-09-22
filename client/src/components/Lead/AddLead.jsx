@@ -49,11 +49,17 @@ export default function AddLead({ onClose, onSubmit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    for (let field of ["name", "phone", "source", "priority"]) {
+    // resolve source: if 'Other' is selected, use sourceOther value
+    const resolvedSource = form.source === "Other" ? (form.sourceOther || "") : form.source;
+    for (let field of ["name", "phone", "priority"]) {
       if (!form[field]) {
         toast.error(`Please fill the mandatory field: ${field}`);
         return;
       }
+    }
+    if (!resolvedSource) {
+      toast.error(`Please fill the mandatory field: source`);
+      return;
     }
     const organizationId = localStorage.getItem("organizationId");
     const token = localStorage.getItem("jwt_token");
@@ -61,7 +67,7 @@ export default function AddLead({ onClose, onSubmit }) {
       name: form.name,
       phone: form.phone,
       email: form.email,
-      source: form.source,
+      source: resolvedSource,
       priority: form.priority,
       organizationId: organizationId,
     };
@@ -157,14 +163,36 @@ export default function AddLead({ onClose, onSubmit }) {
                     <label className="font-semibold text-[#222]">
                       Source <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <select
                       name="source"
                       value={form.source}
                       onChange={handleChange}
-                      placeholder="Source"
                       className="input"
                       required
-                    />
+                      aria-label="Lead source"
+                    >
+                      <option value="">Select source</option>
+                      <option value="Social Media">Social Media</option>
+                      <option value="Paper Ads">Paper Ads</option>
+                      <option value="TV Ads">TV Ads</option>
+                      <option value="Referral">Referral</option>
+                      <option value="Website">Website</option>
+                      <option value="Event">Event</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {form.source === "Other" && (
+                      <input
+                        name="sourceOther"
+                        value={form.sourceOther || ""}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, sourceOther: e.target.value }))
+                        }
+                        placeholder="Please specify source"
+                        className="input mt-2"
+                        required
+                        aria-label="Specify source"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="font-semibold text-[#222]">
