@@ -35,6 +35,9 @@ const telecaller = {
   email: "arun.kumar@tamilmail.com",
   profile: "",
   todayAssignments: 12,
+  todayFollowups: 11,
+  yesterdayPending: 4,
+  completedClosed: 132,
   monthlyCalls: 120,
   monthlyTarget: 400,
   totalDuration: "5h 20m",
@@ -230,58 +233,18 @@ export default function IndividualTelecaller() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 flex-shrink-0">
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">
-                Today's Assignments
-              </span>
-              <span className="text-lg font-bold text-[#7C3AED]">
-                {telecaller.todayAssignments}
-              </span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-shrink-0">
+            <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
+              <span className="text-xs text-gray-500 mb-1">Today's Follow up</span>
+              <span className="text-2xl font-bold text-[#7C3AED]">{telecaller.todayFollowups ?? 11}</span>
             </div>
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Monthly Calls</span>
-              <span className="text-lg font-bold text-[#16A34A]">
-                {telecaller.monthlyCalls}
-              </span>
-              <span className="text-xs text-gray-500">
-                {telecaller.monthlyCalls}/{telecaller.monthlyTarget}
-              </span>
+            <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
+              <span className="text-xs text-gray-500 mb-1">Yesterday Pending</span>
+              <span className="text-2xl font-bold text-[#F59E42]">{telecaller.yesterdayPending ?? 4}</span>
             </div>
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Total Duration</span>
-              <span className="text-lg font-bold text-[#F59E42]">
-                {telecaller.totalDuration}
-              </span>
-            </div>
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Progress Rate</span>
-              <span className="text-lg font-bold text-[#7C3AED]">
-                {telecaller.progressRate}%
-              </span>
-              <div className="w-full h-2 bg-[#e5e7eb] rounded mt-1">
-                <div
-                  className="h-2 rounded bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] transition-all"
-                  style={{ width: `${telecaller.progressRate}%` }}
-                ></div>
-              </div>
-            </div>
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">
-                Avg Call Duration
-              </span>
-              <span className="text-lg font-bold text-[#7C3AED]">
-                {telecaller.avgDuration}
-              </span>
-            </div>
-            <div className="bg-[#f6f8fb] rounded-lg p-2 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">First Response</span>
-              <span className="text-lg font-bold text-[#16A34A]">
-                {telecaller.firstResponse}
-              </span>
-              <span className="text-xs text-gray-500">
-                Missed: {telecaller.missedCalls}
-              </span>
+            <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
+              <span className="text-xs text-gray-500 mb-1">Completed / Closed</span>
+              <span className="text-2xl font-bold text-[#16A34A]">{telecaller.completedClosed ?? 132}</span>
             </div>
           </div>
           {/* Call Conversion Analytics with Tab */}
