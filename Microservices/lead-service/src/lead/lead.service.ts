@@ -303,4 +303,56 @@ export class LeadService {
     }
     return updatedLead;
   }
+
+  // Export leads to XLSX buffer. Optionally filter by organizationId or query filters.
+  async exportLeads(filters: any = {}): Promise<Buffer> {
+    // Build filter similar to findAllOrganizationLeads
+    const queryFilter: any = {};
+    if (filters.organizationId) {
+      queryFilter.organizationId = new Types.ObjectId(filters.organizationId);
+    }
+    // apply optional status/priority/assignedTo/source/tags filters
+    if (filters.status) queryFilter.status = filters.status;
+    if (filters.priority) queryFilter.priority = filters.priority;
+    if (filters.assignedTo) queryFilter.assignedTo = filters.assignedTo;
+    if (filters.source) queryFilter.source = filters.source;
+    if (filters.tags) queryFilter.tags = { $in: Array.isArray(filters.tags) ? filters.tags : [filters.tags] };
+
+    const leads = await this.leadModel.find(queryFilter).lean().exec();
+
+    // Build rows
+    const rows = leads.map((l: any) => ({
+      _id: l._id?.toString(),
+      name: l.name || '',
+      phone: l.phone || '',
+      email: l.email || '',
+      source: l.source || '',
+      priority: l.priority || '',
+      status: l.status || '',
+      assignedTo: l.assignedTo ? (l.assignedTo.name || l.assignedTo.toString()) : '',
+      lastContacted: l.lastContacted ? new Date(l.lastContacted).toISOString() : '',
+      nextFollowUp: l.nextFollowUp ? new Date(l.nextFollowUp).toISOString() : '',
+      interestedIn: Array.isArray(l.interestedIn) ? l.interestedIn.join('; ') : (l.interestedIn || ''),
+      tags: Array.isArray(l.tags) ? l.tags.join('; ') : (l.tags || ''),
+      notes: l.notes || '',
+      company: l.company || '',
+      position: l.position || '',
+      industry: l.industry || '',
+      location: l.location || '',
+      pincode: l.pincode || '',
+      conversionScore: l.conversionScore || '',
+      createdBy: l.createdBy || '',
+      organizationId: l.organizationId ? l.organizationId.toString() : '',
+    }));
+
+    // Generate XLSX via xlsx package
+    // Use require to avoid import overhead
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const XLSX = require('xlsx');
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return buffer;
+  }
 }

@@ -9,6 +9,9 @@ import {
   Query,
   Patch,
   UseGuards,
+  Res,
+  HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
@@ -28,6 +31,20 @@ export class LeadController {
   @Get('/getOrganizationLeads/:organizationId')
   findAllOrganizationLeads(@Query() query, @Param() param): Promise<Lead[]> {
     return this.leadService.findAllOrganizationLeads(query, param);
+  }
+
+  // Export leads to XLSX.
+  @Get('export')
+  async exportLeads(@Query() query: any, @Res() res: any) {
+    // Require organizationId to be supplied by the frontend
+    if (!query || !query.organizationId) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ message: 'organizationId query parameter is required' });
+    }
+    const buffer = await this.leadService.exportLeads(query);
+    const filename = `leads_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(HttpStatus.OK).send(buffer);
   }
 
   @Get(':id')

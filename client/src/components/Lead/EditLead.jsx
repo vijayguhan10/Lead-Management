@@ -63,7 +63,9 @@ export default function EditLead({
         lastContacted: data.lastContacted
           ? new Date(data.lastContacted).toISOString().slice(0, 10)
           : "",
-        nextFollowUp: data.nextFollowUp ? toLocalDateTimeInput(data.nextFollowUp) : "",
+        nextFollowUp: data.nextFollowUp
+          ? toLocalDateTimeInput(data.nextFollowUp)
+          : "",
         interestedIn: Array.isArray(data.interestedIn)
           ? data.interestedIn.join(", ")
           : data.interestedIn || "",
@@ -124,8 +126,12 @@ export default function EditLead({
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
           : [],
-        nextFollowUp: form.nextFollowUp ? parseLocalDateTime(form.nextFollowUp) : undefined,
-        lastContacted: form.lastContacted ? new Date(form.lastContacted) : undefined,
+        nextFollowUp: form.nextFollowUp
+          ? parseLocalDateTime(form.nextFollowUp)
+          : undefined,
+        lastContacted: form.lastContacted
+          ? new Date(form.lastContacted)
+          : undefined,
       };
       method = "PATCH";
       endpoint = `/leads/${leadId}/notes`;
@@ -150,7 +156,9 @@ export default function EditLead({
         lastContacted: form.lastContacted
           ? new Date(form.lastContacted)
           : undefined,
-        nextFollowUp: form.nextFollowUp ? parseLocalDateTime(form.nextFollowUp) : undefined,
+        nextFollowUp: form.nextFollowUp
+          ? parseLocalDateTime(form.nextFollowUp)
+          : undefined,
         interestedIn: form.interestedIn
           ? form.interestedIn.split(",").map((s) => s.trim())
           : [],
@@ -186,9 +194,9 @@ export default function EditLead({
         <div
           className="absolute inset-0 transition-opacity"
           style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px) brightness(0.8)',
-            WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+            background: "rgba(255, 255, 255, 0.1)",
+            backdropFilter: "blur(10px) brightness(0.8)",
+            WebkitBackdropFilter: "blur(10px) brightness(0.8)",
           }}
         ></div>
         <div className="bg-white rounded-xl p-8">
@@ -205,9 +213,9 @@ export default function EditLead({
         className="absolute inset-0 transition-opacity"
         onClick={onClose}
         style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px) brightness(0.8)',
-          WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px) brightness(0.8)",
+          WebkitBackdropFilter: "blur(10px) brightness(0.8)",
         }}
       ></div>
       <div
@@ -218,7 +226,9 @@ export default function EditLead({
           <div className="flex items-center gap-3 min-w-0">
             <FaUserEdit className="text-[#16A34A] text-2xl flex-shrink-0" />
             <div className="flex items-center gap-4 min-w-0">
-              <h2 className="text-2xl font-extrabold text-[#222] truncate">Edit Lead</h2>
+              <h2 className="text-2xl font-extrabold text-[#222] truncate">
+                Edit Lead
+              </h2>
               <div className="text-base text-gray-700 truncate flex items-center gap-2">
                 {form?.name ? (
                   <span className="font-semibold text-[#111]">{form.name}</span>
@@ -226,7 +236,10 @@ export default function EditLead({
                   <span className="italic">Unnamed Lead</span>
                 )}
                 {form?.phone ? (
-                  <span className="text-gray-400"> &nbsp;•&nbsp; {form.phone}</span>
+                  <span className="text-gray-400">
+                    {" "}
+                    &nbsp;•&nbsp; {form.phone}
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -473,126 +486,130 @@ export default function EditLead({
                   />
                 </div>
               </div>
-                {role !== "telecaller" ? (
-                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
-                    <h3 className="text-lg font-bold text-[#222] mb-4">
-                      Dates & Other
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div>
-                        <label
-                          htmlFor="lastContacted_input"
-                          className="font-semibold text-[#222]"
-                        >
-                          Last Contacted
-                        </label>
-                        <input
-                          id="lastContacted_input"
-                          type="date"
-                          name="lastContacted"
-                          value={form.lastContacted || ""}
-                          onChange={handleChange}
-                          className="input"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="nextFollowUp_input"
-                          className="font-semibold text-[#222]"
-                        >
-                          Next Follow Up
-                        </label>
-                        <input
-                          id="nextFollowUp_input"
-                          type="datetime-local"
-                          name="nextFollowUp"
-                          value={form.nextFollowUp || ""}
-                          onChange={handleChange}
-                          className="input"
-                          aria-label="Next follow up datetime"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="conversionScore_input"
-                          className="font-semibold text-[#222]"
-                        >
-                          Conversion Score
-                        </label>
-                        <input
-                          id="conversionScore_input"
-                          type="number"
-                          name="conversionScore"
-                          value={form.conversionScore || ""}
-                          onChange={handleChange}
-                          className="input"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="createdBy_input"
-                          className="font-semibold text-[#222]"
-                        >
-                          Created By
-                        </label>
-                        <input
-                          id="createdBy_input"
-                          name="createdBy"
-                          value={form.createdBy || ""}
-                          onChange={handleChange}
-                          className="input"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="attachments_input"
-                          className="font-semibold text-[#222]"
-                        >
-                          Attachments (comma separated)
-                        </label>
-                        <input
-                          id="attachments_input"
-                          name="attachments"
-                          value={form.attachments || ""}
-                          onChange={(e) =>
-                            handleArrayChange("attachments", e.target.value)
-                          }
-                          className="input"
-                        />
-                      </div>
+              {role !== "telecaller" ? (
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-6 mb-2">
+                  <h3 className="text-lg font-bold text-[#222] mb-4">
+                    Dates & Other
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label
+                        htmlFor="lastContacted_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Last Contacted
+                      </label>
+                      <input
+                        id="lastContacted_input"
+                        type="date"
+                        name="lastContacted"
+                        value={form.lastContacted || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="nextFollowUp_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Next Follow Up
+                      </label>
+                      <input
+                        id="nextFollowUp_input"
+                        type="datetime-local"
+                        name="nextFollowUp"
+                        value={form.nextFollowUp || ""}
+                        onChange={handleChange}
+                        className="input"
+                        aria-label="Next follow up datetime"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="conversionScore_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Conversion Score
+                      </label>
+                      <input
+                        id="conversionScore_input"
+                        type="number"
+                        name="conversionScore"
+                        value={form.conversionScore || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="createdBy_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Created By
+                      </label>
+                      <input
+                        id="createdBy_input"
+                        name="createdBy"
+                        value={form.createdBy || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="attachments_input"
+                        className="font-semibold text-[#222]"
+                      >
+                        Attachments (comma separated)
+                      </label>
+                      <input
+                        id="attachments_input"
+                        name="attachments"
+                        value={form.attachments || ""}
+                        onChange={(e) =>
+                          handleArrayChange("attachments", e.target.value)
+                        }
+                        className="input"
+                      />
                     </div>
                   </div>
-                ) : (
-                  // Telecaller view: compact dates panel so telecallers can schedule follow-ups
-                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
-                    <h4 className="text-md font-bold text-[#222] mb-2">Dates</h4>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <label className="font-semibold text-[#222] block">Last Contacted</label>
-                        <input
-                          id="lastContacted_input"
-                          type="date"
-                          name="lastContacted"
-                          value={form.lastContacted || ""}
-                          onChange={handleChange}
-                          className="input"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-semibold text-[#222] block">Next Follow Up</label>
-                        <input
-                          id="nextFollowUp_input"
-                          type="datetime-local"
-                          name="nextFollowUp"
-                          value={form.nextFollowUp || ""}
-                          onChange={handleChange}
-                          className="input"
-                          aria-label="Next follow up datetime"
-                        />
-                      </div>
+                </div>
+              ) : (
+                // Telecaller view: compact dates panel so telecallers can schedule follow-ups
+                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
+                  <h4 className="text-md font-bold text-[#222] mb-2">Dates</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="font-semibold text-[#222] block">
+                        Last Contacted
+                      </label>
+                      <input
+                        id="lastContacted_input"
+                        type="date"
+                        name="lastContacted"
+                        value={form.lastContacted || ""}
+                        onChange={handleChange}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-[#222] block">
+                        Next Follow Up
+                      </label>
+                      <input
+                        id="nextFollowUp_input"
+                        type="datetime-local"
+                        name="nextFollowUp"
+                        value={form.nextFollowUp || ""}
+                        onChange={handleChange}
+                        className="input"
+                        aria-label="Next follow up datetime"
+                      />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
             </div>
           </form>
         </div>

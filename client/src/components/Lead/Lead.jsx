@@ -217,7 +217,34 @@ const Lead = () => {
   };
 
   const exportLeads = () => {
-    alert("Export to Excel/CSV coming soon!");
+    const token = localStorage.getItem("jwt_token");
+  const orgId = localStorage.getItem('organizationId') || localStorage.getItem('orgId') || localStorage.getItem('org') || '';
+  const url = `${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/export?organizationId=${encodeURIComponent(orgId)}`;
+    fetch(url, {
+      method: "GET",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `leads_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(downloadUrl);
+        toast.success("Export started");
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(err.message || "Failed to export leads");
+      });
   };
 
   const bulkAssign = () => {

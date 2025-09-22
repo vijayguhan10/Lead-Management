@@ -151,7 +151,7 @@ export default function IndividualTelecaller() {
           ))}
         </div>
       </div>
-        <div className="flex items-center justify-between flex-shrink-0 px-6 pt-2 pb-2">
+      <div className="flex items-center justify-between flex-shrink-0 px-6 pt-2 pb-2">
         <span className="font-semibold text-gray-700 text-lg flex items-center gap-2">
           <FaArrowLeft className="mr-2" />
           Back to Telecallers
@@ -175,7 +175,6 @@ export default function IndividualTelecaller() {
       </div>
 
       {/* Header */}
-    
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 gap-4 px-4 pb-4">
@@ -235,16 +234,28 @@ export default function IndividualTelecaller() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-shrink-0">
             <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Today's Follow up</span>
-              <span className="text-2xl font-bold text-[#7C3AED]">{telecaller.todayFollowups ?? 11}</span>
+              <span className="text-xs text-gray-500 mb-1">
+                Today's Follow up
+              </span>
+              <span className="text-2xl font-bold text-[#7C3AED]">
+                {telecaller.todayFollowups ?? 11}
+              </span>
             </div>
             <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Yesterday Pending</span>
-              <span className="text-2xl font-bold text-[#F59E42]">{telecaller.yesterdayPending ?? 4}</span>
+              <span className="text-xs text-gray-500 mb-1">
+                Yesterday Pending
+              </span>
+              <span className="text-2xl font-bold text-[#F59E42]">
+                {telecaller.yesterdayPending ?? 4}
+              </span>
             </div>
             <div className="bg-[#f6f8fb] rounded-lg p-3 flex flex-col items-center shadow">
-              <span className="text-xs text-gray-500 mb-1">Completed / Closed</span>
-              <span className="text-2xl font-bold text-[#16A34A]">{telecaller.completedClosed ?? 132}</span>
+              <span className="text-xs text-gray-500 mb-1">
+                Completed / Closed
+              </span>
+              <span className="text-2xl font-bold text-[#16A34A]">
+                {telecaller.completedClosed ?? 132}
+              </span>
             </div>
           </div>
           {/* Call Conversion Analytics with Tab */}
