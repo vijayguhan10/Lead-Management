@@ -85,7 +85,7 @@ jobs:
         if: env.SERVICE_CHANGED == 'true'
         run: |
           aws ecs update-service \
-            --cluster your-cluster-name \
+            --cluster Lead-Management \
             --service ${{ matrix.service }} \
             --force-new-deployment \
             --region ap-south-1
@@ -99,7 +99,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "ECS Deployment: ${{ matrix.service }} — v${{ github.run_number }}"
-          to: your_email@example.com
+          to: vijayguhan10@gmail.com
           content_type: text/html
           body: |
             <html>
