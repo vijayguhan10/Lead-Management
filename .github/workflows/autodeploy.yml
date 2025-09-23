@@ -122,6 +122,9 @@ jobs:
             | { family: .family, containerDefinitions: .containerDefinitions, volumes: .volumes }
             + ( if .taskRoleArn then { taskRoleArn: .taskRoleArn } else {} end )
             + { executionRoleArn: .executionRoleArn, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory }
+            + ( if .placementConstraints then { placementConstraints: .placementConstraints } else {} end )
+            + ( if .runtimePlatform then { runtimePlatform: .runtimePlatform } else {} end )
+            + ( if .requiresAttributes then { requiresAttributes: .requiresAttributes } else {} end )
           ')
 
           echo "$NEW_TASK_DEF" > new-task.json
