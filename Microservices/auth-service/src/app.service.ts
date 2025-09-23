@@ -43,7 +43,7 @@ export class AppService {
 <body>
   <div class="card" role="region" aria-label="Auth service health card">
     <div class="header">
-      <div class="dot">a</div>
+      <div class="dot">A</div>
       <div>
         <div class="title">Auth Service</div>
         <div class="small" style="margin-top:6px;color:#374151">Status: <span class="status">Healthy</span></div>
