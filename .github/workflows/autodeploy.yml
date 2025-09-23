@@ -1,0 +1,148 @@
+name: CI/CD ECS Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # use lowercase names for docker repo tags (matches your Docker Hub)
+        service:
+          - auth-service
+          - call-service
+          - lead-service
+          - media-service
+          - notification-service
+          - telecaller-service
+          - user-service
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Determine Dockerfile and service folder
+        id: paths
+        run: |
+          case "${{ matrix.service }}" in
+            telecaller-service)
+              echo "DOCKERFILE=Microservices/dockerfiles/Telecaller-service.Dockerfile" >> $GITHUB_ENV
+              echo "SERVICE_FOLDER=Microservices/Telecaller-service" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "DOCKERFILE=Microservices/dockerfiles/${{ matrix.service }}.Dockerfile" >> $GITHUB_ENV
+              echo "SERVICE_FOLDER=Microservices/${{ matrix.service }}" >> $GITHUB_ENV
+              ;;
+          esac
+          echo "Resolved DOCKERFILE=$DOCKERFILE"
+          echo "Resolved SERVICE_FOLDER=$SERVICE_FOLDER"
+
+      - name: Check if service changed
+        id: changed
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "$SERVICE_FOLDER/"; then
+            echo "SERVICE_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Docker Buildx
+        if: env.SERVICE_CHANGED == 'true'
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        if: env.SERVICE_CHANGED == 'true'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        if: env.SERVICE_CHANGED == 'true'
+        run: |
+          echo "Building $SERVICE_FOLDER using $DOCKERFILE"
+          docker build -f "$DOCKERFILE" -t "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" "$SERVICE_FOLDER"
+          docker tag "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" "vijay4230/${{ matrix.service }}:latest"
+
+      - name: Push Docker Image
+        if: env.SERVICE_CHANGED == 'true'
+        run: |
+          docker push "vijay4230/${{ matrix.service }}:v${{ github.run_number }}"
+          docker push "vijay4230/${{ matrix.service }}:latest"
+
+      - name: Configure AWS credentials
+        if: env.SERVICE_CHANGED == 'true'
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Update ECS Service
+        if: env.SERVICE_CHANGED == 'true'
+        run: |
+          aws ecs update-service \
+            --cluster your-cluster-name \
+            --service ${{ matrix.service }} \
+            --force-new-deployment \
+            --region ap-south-1
+
+      - name: Send Deployment Email
+        if: env.SERVICE_CHANGED == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "ECS Deployment: ${{ matrix.service }} — v${{ github.run_number }}"
+          to: your_email@example.com
+          content_type: text/html
+          body: |
+            <html>
+            <body style="font-family:Arial,Helvetica,sans-serif; color:#222;">
+              <div style="max-width:680px; margin:20px auto; border-radius:12px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.08);">
+                <div style="background:#0f172a; color:#fff; padding:18px 24px;">
+                  <h2 style="margin:0; font-size:20px;">Deployment Report</h2>
+                  <p style="margin:6px 0 0; color:#d1d5db;">Repository: <strong>${{ github.repository }}</strong></p>
+                </div>
+                <div style="background:#fff; padding:18px 24px;">
+                  <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:8px 0; width:160px; font-weight:600;">Service</td>
+                      <td style="padding:8px 0;">${{ matrix.service }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0; font-weight:600;">Image</td>
+                      <td style="padding:8px 0;">vijay4230/${{ matrix.service }}:v${{ github.run_number }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0; font-weight:600;">Branch</td>
+                      <td style="padding:8px 0;">${{ github.ref_name }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0; font-weight:600;">Commit</td>
+                      <td style="padding:8px 0;"><a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}" style="color:#0366d6;text-decoration:none;">${{ github.sha }}</a></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0; font-weight:600;">ECS Cluster</td>
+                      <td style="padding:8px 0;">your-cluster-name (ap-south-1)</td>
+                    </tr>
+                  </table>
+
+                  <div style="margin-top:16px; display:flex; gap:10px;">
+                    <a href="https://hub.docker.com/repository/docker/vijay4230/${{ matrix.service }}/tags" style="display:inline-block;padding:10px 14px;background:#ffd54a;border-radius:8px;color:#111;font-weight:600;text-decoration:none;">View Docker Tags</a>
+                    <a href="https://github.com/${{ github.repository }}/actions/workflows/autodeploy.yml" style="display:inline-block;padding:10px 14px;background:#16a34a;border-radius:8px;color:#fff;font-weight:600;text-decoration:none;">View Workflow</a>
+                  </div>
+
+                  <p style="margin:18px 0 0; color:#6b7280;">This is an automated notification. If you did not expect this deployment, check the pipeline and repository changes.</p>
+                </div>
+                <div style="background:#f8fafc; padding:12px 24px; text-align:center; color:#6b7280; font-size:13px;">
+                  Deployed by GitHub Actions • Run #${{ github.run_number }}
+                </div>
+              </div>
+            </body>
+            </html>
