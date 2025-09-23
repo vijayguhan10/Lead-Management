@@ -19,7 +19,7 @@ export class AppService {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Auth Service- • Health</title>
+  <title>Auth Service • Health</title>
   <style>
     :root{--bg:#f6f7fb;--card:#fff;--accent:#16a34a;--muted:#6b7280}
     body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fbfdff, #f6f7fb);font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
