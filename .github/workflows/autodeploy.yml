@@ -133,13 +133,14 @@ jobs:
 
           NEW_TASK_DEF_ARN=$(echo "$REGISTER_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
           echo "Registered new task definition: $NEW_TASK_DEF_ARN"
-          echo "REGISTER_OUTPUT=$REGISTER_OUTPUT" >> $GITHUB_ENV
+          # Save register output to a file rather than writing large JSON into GITHUB_ENV
+          echo "$REGISTER_OUTPUT" > register-output.json || true
           echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
-          # Dump new task json and register output for debugging
+          # Dump new-task.json and register-output.json for debugging (safe to print)
           echo "--- new-task.json ---"
           cat new-task.json || true
-          echo "--- register output ---"
-          echo "$REGISTER_OUTPUT" || true
+          echo "--- register-output.json ---"
+          cat register-output.json || true
 
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
