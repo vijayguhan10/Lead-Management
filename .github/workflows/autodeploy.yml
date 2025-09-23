@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # use lowercase names for docker repo tags (matches your Docker Hub)
         service:
           - auth-service
           - call-service
@@ -24,7 +23,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # fetch full history so git can diff arbitrary commits
+          fetch-depth: 0
 
       - name: Determine Dockerfile and service folder
         id: paths
@@ -49,17 +48,10 @@ jobs:
           set -euo pipefail
           SERVICE_FOLDER="$SERVICE_FOLDER"
           echo "SERVICE_FOLDER=${SERVICE_FOLDER}"
-
-          # Ensure the target commit is available
           git fetch --no-tags --prune origin "${GITHUB_SHA}" || true
-
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
-
-          # If BEFORE is all zeroes or not a valid object, fallback to compare last commit
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
-            echo "[INFO] before commit is missing or zero; using single-commit diff"
-            # compare the parent of AFTER (if exists) to AFTER, otherwise list files in AFTER
             if git rev-parse "${AFTER}^" >/dev/null 2>&1; then
               CHANGED_FILES=$(git diff --name-only "${AFTER}^" "${AFTER}") || true
             else
@@ -68,8 +60,6 @@ jobs:
           else
             CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER") || true
           fi
-
-          echo "Changed files:"
           echo "$CHANGED_FILES"
           echo "$CHANGED_FILES" | grep -q "${SERVICE_FOLDER}/" && echo "SERVICE_CHANGED=true" >> $GITHUB_ENV || echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
 
@@ -105,6 +95,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
+      - name: Register new ECS task definition
+        if: env.SERVICE_CHANGED == 'true'
+        id: register-task
+        run: |
+          TASK_DEFINITION_JSON=$(aws ecs describe-task-definition \
+            --task-definition ${{ matrix.service }} \
+            --region ap-south-1 \
+            --query "taskDefinition" \
+            --output json)
+
+          NEW_TASK_DEF=$(echo $TASK_DEFINITION_JSON | jq \
+            --arg IMAGE "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" \
+            '.containerDefinitions[0].image=$IMAGE | {family:.family, containerDefinitions:[.containerDefinitions[0]], volumes:.volumes, taskRoleArn:.taskRoleArn, executionRoleArn:.executionRoleArn, networkMode:.networkMode, requiresCompatibilities:.requiresCompatibilities, cpu:.cpu, memory:.memory}') 
+
+          echo "$NEW_TASK_DEF" > new-task.json
+
+          aws ecs register-task-definition \
+            --cli-input-json file://new-task.json \
+            --region ap-south-1
+
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
         run: |
@@ -122,10 +132,11 @@ jobs:
           server_port: 465
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
+          from: ${{ secrets.EMAIL_USERNAME }}
+          secure: true
           subject: "ECS Deployment: ${{ matrix.service }} — v${{ github.run_number }}"
           to: vijayguhan10@gmail.com
-          content_type: text/html
-          body: |
+          html_body: |
             <html>
             <body style="font-family:Arial,Helvetica,sans-serif; color:#222;">
               <div style="max-width:680px; margin:20px auto; border-radius:12px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.08);">
@@ -153,7 +164,7 @@ jobs:
                     </tr>
                     <tr>
                       <td style="padding:8px 0; font-weight:600;">ECS Cluster</td>
-                      <td style="padding:8px 0;">your-cluster-name (ap-south-1)</td>
+                      <td style="padding:8px 0;">Lead-Management (ap-south-1)</td>
                     </tr>
                   </table>
 
