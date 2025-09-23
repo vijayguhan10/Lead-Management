@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch full history so git can diff arbitrary commits
 
       - name: Determine Dockerfile and service folder
         id: paths
@@ -42,12 +44,34 @@ jobs:
 
       - name: Check if service changed
         id: changed
+        shell: bash
         run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "$SERVICE_FOLDER/"; then
-            echo "SERVICE_CHANGED=true" >> $GITHUB_ENV
+          set -euo pipefail
+          SERVICE_FOLDER="$SERVICE_FOLDER"
+          echo "SERVICE_FOLDER=${SERVICE_FOLDER}"
+
+          # Ensure the target commit is available
+          git fetch --no-tags --prune origin "${GITHUB_SHA}" || true
+
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          # If BEFORE is all zeroes or not a valid object, fallback to compare last commit
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            echo "[INFO] before commit is missing or zero; using single-commit diff"
+            # compare the parent of AFTER (if exists) to AFTER, otherwise list files in AFTER
+            if git rev-parse "${AFTER}^" >/dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only "${AFTER}^" "${AFTER}") || true
+            else
+              CHANGED_FILES=$(git show --name-only --pretty="" "${AFTER}") || true
+            fi
           else
-            echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER") || true
           fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          echo "$CHANGED_FILES" | grep -q "${SERVICE_FOLDER}/" && echo "SERVICE_CHANGED=true" >> $GITHUB_ENV || echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         if: env.SERVICE_CHANGED == 'true'
