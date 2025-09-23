@@ -48,9 +48,11 @@ jobs:
           set -euo pipefail
           SERVICE_FOLDER="$SERVICE_FOLDER"
           echo "SERVICE_FOLDER=${SERVICE_FOLDER}"
+
           git fetch --no-tags --prune origin "${GITHUB_SHA}" || true
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
+
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
             if git rev-parse "${AFTER}^" >/dev/null 2>&1; then
               CHANGED_FILES=$(git diff --name-only "${AFTER}^" "${AFTER}") || true
@@ -60,6 +62,8 @@ jobs:
           else
             CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER") || true
           fi
+
+          echo "Changed files:"
           echo "$CHANGED_FILES"
           echo "$CHANGED_FILES" | grep -q "${SERVICE_FOLDER}/" && echo "SERVICE_CHANGED=true" >> $GITHUB_ENV || echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
 
@@ -95,9 +99,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Register new ECS task definition
+      - name: Register New ECS Task Definition
         if: env.SERVICE_CHANGED == 'true'
-        id: register-task
         run: |
           TASK_DEFINITION_JSON=$(aws ecs describe-task-definition \
             --task-definition ${{ matrix.service }} \
@@ -105,9 +108,19 @@ jobs:
             --query "taskDefinition" \
             --output json)
 
-          NEW_TASK_DEF=$(echo $TASK_DEFINITION_JSON | jq \
+          NEW_TASK_DEF=$(echo "$TASK_DEFINITION_JSON" | jq \
             --arg IMAGE "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" \
-            '.containerDefinitions[0].image=$IMAGE | {family:.family, containerDefinitions:[.containerDefinitions[0]], volumes:.volumes, taskRoleArn:.taskRoleArn, executionRoleArn:.executionRoleArn, networkMode:.networkMode, requiresCompatibilities:.requiresCompatibilities, cpu:.cpu, memory:.memory}') 
+            '{
+              family: .family,
+              containerDefinitions: [.containerDefinitions[0] | .image=$IMAGE],
+              volumes: .volumes,
+              networkMode: .networkMode,
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }
+            + (if .taskRoleArn then {taskRoleArn: .taskRoleArn} else {} end)
+            + (if .executionRoleArn then {executionRoleArn: .executionRoleArn} else {} end)')
 
           echo "$NEW_TASK_DEF" > new-task.json
 
