@@ -122,7 +122,7 @@ jobs:
               family: .family,
               containerDefinitions: [.containerDefinitions[0] | .image=$IMAGE],
               volumes: .volumes,
-              taskRoleArn: .taskRoleArn // null,
+              taskRoleArn: .taskRoleArn,
               executionRoleArn: .executionRoleArn,
               networkMode: .networkMode,
               requiresCompatibilities: .requiresCompatibilities,
