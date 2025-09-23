@@ -115,21 +115,14 @@ jobs:
             --query "taskDefinition" \
             --output json)
 
-          # Update image and remove unnecessary fields
-          NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq \
-            --arg IMAGE "vijay4230/${{ matrix.service }}:$IMAGE_TAG" \
-            '{
-              family: .family,
-              containerDefinitions: [.containerDefinitions[0] | .image=$IMAGE],
-              volumes: .volumes,
-              taskRoleArn: .taskRoleArn,
-              executionRoleArn: .executionRoleArn,
-              networkMode: .networkMode,
-              requiresCompatibilities: .requiresCompatibilities,
-              cpu: .cpu,
-              memory: .memory
-            }'
-          )
+          # Update image, remove AWS metadata fields, and include taskRoleArn only if present
+          NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq --arg IMAGE "vijay4230/${{ matrix.service }}:$IMAGE_TAG" '
+            .containerDefinitions |= map(.image = $IMAGE)
+            | del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy)
+            | { family: .family, containerDefinitions: .containerDefinitions, volumes: .volumes }
+            + ( if .taskRoleArn then { taskRoleArn: .taskRoleArn } else {} end )
+            + { executionRoleArn: .executionRoleArn, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory }
+          ')
 
           echo "$NEW_TASK_DEF" > new-task.json
 
@@ -140,17 +133,24 @@ jobs:
 
           NEW_TASK_DEF_ARN=$(echo "$REGISTER_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
           echo "Registered new task definition: $NEW_TASK_DEF_ARN"
+          echo "REGISTER_OUTPUT=$REGISTER_OUTPUT" >> $GITHUB_ENV
           echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
+          # Dump new task json and register output for debugging
+          echo "--- new-task.json ---"
+          cat new-task.json || true
+          echo "--- register output ---"
+          echo "$REGISTER_OUTPUT" || true
 
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
         run: |
           # Force service to use the newly registered task definition revision
+          SERVICE_NAME=${{ matrix.service }}
           if [ -n "${NEW_TASK_DEF_ARN-}" ]; then
-            echo "Updating service to use task definition $NEW_TASK_DEF_ARN"
+            echo "Updating service ${SERVICE_NAME} to use task definition $NEW_TASK_DEF_ARN"
             aws ecs update-service \
               --cluster Lead-Management \
-              --service ${{ matrix.service }} \
+              --service "$SERVICE_NAME" \
               --task-definition "$NEW_TASK_DEF_ARN" \
               --force-new-deployment \
               --region ap-south-1
@@ -158,9 +158,46 @@ jobs:
             echo "NEW_TASK_DEF_ARN not found; falling back to force-new-deployment"
             aws ecs update-service \
               --cluster Lead-Management \
-              --service ${{ matrix.service }} \
+              --service "${{ matrix.service }}" \
               --force-new-deployment \
               --region ap-south-1
+          fi
+
+          # Wait for the service to reach a stable state
+          echo "Waiting for service to stabilize..."
+          aws ecs wait services-stable --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1
+
+          # Verify the primary deployment is using the new task definition
+          PRIMARY_TASK_DEF=$(aws ecs describe-services --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' --output text)
+          echo "Primary deployment taskDefinition: $PRIMARY_TASK_DEF"
+          if [ -n "${NEW_TASK_DEF_ARN-}" ] && [ "$PRIMARY_TASK_DEF" != "$NEW_TASK_DEF_ARN" ]; then
+            echo "ERROR: primary deployment is not using the new task definition ARN"
+            echo "Expected: $NEW_TASK_DEF_ARN"
+            echo "Actual:   $PRIMARY_TASK_DEF"
+            # Try remediation: Describe the registered task definition for clarity
+            echo "Describing registered task definition..."
+            aws ecs describe-task-definition --task-definition "$NEW_TASK_DEF_ARN" --region ap-south-1 || true
+
+            # Stop running tasks to force new ones (use with caution)
+            echo "Attempting to stop running tasks to force replacement..."
+            RUNNING_TASKS=$(aws ecs list-tasks --cluster Lead-Management --service-name "$SERVICE_NAME" --desired-status RUNNING --region ap-south-1 --output text)
+            if [ -n "$RUNNING_TASKS" ]; then
+              for TASK_ARN in $RUNNING_TASKS; do
+                echo "Stopping task: $TASK_ARN"
+                aws ecs stop-task --cluster Lead-Management --task "$TASK_ARN" --reason "Force redeploy to pick up new task definition" --region ap-south-1 || true
+              done
+            else
+              echo "No running tasks found to stop."
+            fi
+
+            # Wait and re-check primary deployment
+            aws ecs wait services-stable --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 || true
+            PRIMARY_TASK_DEF_AFTER=$(aws ecs describe-services --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' --output text)
+            echo "Primary deployment after remediation: $PRIMARY_TASK_DEF_AFTER"
+            if [ "$PRIMARY_TASK_DEF_AFTER" != "$NEW_TASK_DEF_ARN" ]; then
+              echo "Remediation failed: primary deployment still not using new task definition."
+              exit 1
+            fi
           fi
 
       - name: Send Deployment Email
