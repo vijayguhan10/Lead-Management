@@ -1,21 +1,15 @@
 # Use Node.js LTS as the base image
-FROM node:18-alpine
-
-# Set working directory
+FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
-
-# Copy package files and install dependencies
-COPY package.json package-lock.json* ./
-RUN npm install --production
-
-# Copy the rest of the application code
+COPY package*.json ./
+RUN npm ci
 COPY . .
-
-# Build the NestJS app
 RUN npm run build
 
-# Expose the port your app runs on (default NestJS port is 3001)
+FROM node:20-alpine
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=builder /usr/src/app/dist ./dist
 EXPOSE 3003
-
-# Start the application
 CMD ["node", "dist/main.js"]
