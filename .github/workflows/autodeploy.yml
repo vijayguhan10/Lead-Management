@@ -23,7 +23,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # full history for git diff
 
       - name: Determine Dockerfile and service folder
         id: paths
@@ -47,9 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           SERVICE_FOLDER="$SERVICE_FOLDER"
-          echo "SERVICE_FOLDER=${SERVICE_FOLDER}"
 
-          git fetch --no-tags --prune origin "${GITHUB_SHA}" || true
+          # Handle first push or normal diff
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
 
@@ -65,7 +64,12 @@ jobs:
 
           echo "Changed files:"
           echo "$CHANGED_FILES"
-          echo "$CHANGED_FILES" | grep -q "${SERVICE_FOLDER}/" && echo "SERVICE_CHANGED=true" >> $GITHUB_ENV || echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
+
+          if echo "$CHANGED_FILES" | grep -q "${SERVICE_FOLDER}/"; then
+            echo "SERVICE_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
+          fi
 
       - name: Set up Docker Buildx
         if: env.SERVICE_CHANGED == 'true'
@@ -81,14 +85,16 @@ jobs:
       - name: Build Docker Image
         if: env.SERVICE_CHANGED == 'true'
         run: |
+          IMAGE_TAG=v${{ github.run_number }}
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "Building $SERVICE_FOLDER using $DOCKERFILE"
-          docker build -f "$DOCKERFILE" -t "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" "$SERVICE_FOLDER"
-          docker tag "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" "vijay4230/${{ matrix.service }}:latest"
+          docker build -f "$DOCKERFILE" -t "vijay4230/${{ matrix.service }}:$IMAGE_TAG" "$SERVICE_FOLDER"
+          docker tag "vijay4230/${{ matrix.service }}:$IMAGE_TAG" "vijay4230/${{ matrix.service }}:latest"
 
       - name: Push Docker Image
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          docker push "vijay4230/${{ matrix.service }}:v${{ github.run_number }}"
+          docker push "vijay4230/${{ matrix.service }}:$IMAGE_TAG"
           docker push "vijay4230/${{ matrix.service }}:latest"
 
       - name: Configure AWS credentials
@@ -102,40 +108,60 @@ jobs:
       - name: Register New ECS Task Definition
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          TASK_DEFINITION_JSON=$(aws ecs describe-task-definition \
+          # Get existing task definition JSON
+          TASK_DEF_JSON=$(aws ecs describe-task-definition \
             --task-definition ${{ matrix.service }} \
             --region ap-south-1 \
             --query "taskDefinition" \
             --output json)
 
-          NEW_TASK_DEF=$(echo "$TASK_DEFINITION_JSON" | jq \
-            --arg IMAGE "vijay4230/${{ matrix.service }}:v${{ github.run_number }}" \
+          # Update image and remove unnecessary fields
+          NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq \
+            --arg IMAGE "vijay4230/${{ matrix.service }}:$IMAGE_TAG" \
             '{
               family: .family,
               containerDefinitions: [.containerDefinitions[0] | .image=$IMAGE],
               volumes: .volumes,
+              taskRoleArn: .taskRoleArn // null,
+              executionRoleArn: .executionRoleArn,
               networkMode: .networkMode,
               requiresCompatibilities: .requiresCompatibilities,
               cpu: .cpu,
               memory: .memory
-            }
-            + (if .taskRoleArn then {taskRoleArn: .taskRoleArn} else {} end)
-            + (if .executionRoleArn then {executionRoleArn: .executionRoleArn} else {} end)')
+            }'
+          )
 
           echo "$NEW_TASK_DEF" > new-task.json
 
-          aws ecs register-task-definition \
+          # Register new task definition revision and capture the task definition ARN
+          REGISTER_OUTPUT=$(aws ecs register-task-definition \
             --cli-input-json file://new-task.json \
-            --region ap-south-1
+            --region ap-south-1)
+
+          NEW_TASK_DEF_ARN=$(echo "$REGISTER_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "Registered new task definition: $NEW_TASK_DEF_ARN"
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          aws ecs update-service \
-            --cluster Lead-Management \
-            --service ${{ matrix.service }} \
-            --force-new-deployment \
-            --region ap-south-1
+          # Force service to use the newly registered task definition revision
+          if [ -n "${NEW_TASK_DEF_ARN-}" ]; then
+            echo "Updating service to use task definition $NEW_TASK_DEF_ARN"
+            aws ecs update-service \
+              --cluster Lead-Management \
+              --service ${{ matrix.service }} \
+              --task-definition "$NEW_TASK_DEF_ARN" \
+              --force-new-deployment \
+              --region ap-south-1
+          else
+            echo "NEW_TASK_DEF_ARN not found; falling back to force-new-deployment"
+            aws ecs update-service \
+              --cluster Lead-Management \
+              --service ${{ matrix.service }} \
+              --force-new-deployment \
+              --region ap-south-1
+          fi
 
       - name: Send Deployment Email
         if: env.SERVICE_CHANGED == 'true'
@@ -147,7 +173,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           from: ${{ secrets.EMAIL_USERNAME }}
           secure: true
-          subject: "ECS Deployment: ${{ matrix.service }} — v${{ github.run_number }}"
+          subject: "ECS Deployment: ${{ matrix.service }} — $IMAGE_TAG"
           to: vijayguhan10@gmail.com
           html_body: |
             <html>
@@ -165,7 +191,7 @@ jobs:
                     </tr>
                     <tr>
                       <td style="padding:8px 0; font-weight:600;">Image</td>
-                      <td style="padding:8px 0;">vijay4230/${{ matrix.service }}:v${{ github.run_number }}</td>
+                      <td style="padding:8px 0;">vijay4230/${{ matrix.service }}:$IMAGE_TAG</td>
                     </tr>
                     <tr>
                       <td style="padding:8px 0; font-weight:600;">Branch</td>
@@ -180,16 +206,7 @@ jobs:
                       <td style="padding:8px 0;">Lead-Management (ap-south-1)</td>
                     </tr>
                   </table>
-
-                  <div style="margin-top:16px; display:flex; gap:10px;">
-                    <a href="https://hub.docker.com/repository/docker/vijay4230/${{ matrix.service }}/tags" style="display:inline-block;padding:10px 14px;background:#ffd54a;border-radius:8px;color:#111;font-weight:600;text-decoration:none;">View Docker Tags</a>
-                    <a href="https://github.com/${{ github.repository }}/actions/workflows/autodeploy.yml" style="display:inline-block;padding:10px 14px;background:#16a34a;border-radius:8px;color:#fff;font-weight:600;text-decoration:none;">View Workflow</a>
-                  </div>
-
                   <p style="margin:18px 0 0; color:#6b7280;">This is an automated notification. If you did not expect this deployment, check the pipeline and repository changes.</p>
-                </div>
-                <div style="background:#f8fafc; padding:12px 24px; text-align:center; color:#6b7280; font-size:13px;">
-                  Deployed by GitHub Actions • Run #${{ github.run_number }}
                 </div>
               </div>
             </body>
