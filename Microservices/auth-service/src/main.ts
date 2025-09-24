@@ -15,16 +15,18 @@ async function bootstrap() {
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
-      host: 'auth-service.lead.microservices.local',
-      port: 8001, // Choose a port for microservice communication
+      // Bind to all interfaces inside the container/host. Use env to override in different envs.
+      host: process.env.TCP_HOST || '0.0.0.0',
+      port: Number(process.env.TCP_PORT) || 8001, // Port for microservice communication
     },
   });
 
   // Start both the HTTP app and microservice
   await app.startAllMicroservices();
-  await app.listen(3001);
+  await app.listen(3001, '0.0.0.0');
 
-  console.log(`Auth service running on ${await app.getUrl()}`);
-  console.log(`Auth microservice running on TCP port 8001`);
+  const url = await app.getUrl();
+  console.log(`Auth service running on ${url}`);
+  console.log(`Auth microservice running on TCP ${process.env.TCP_HOST || '0.0.0.0'}:${process.env.TCP_PORT || 8001}`);
 }
 bootstrap();
