@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TelecallerModule } from './telecaller/telecaller.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { TelecallerModule } from './telecaller/telecaller.module';
     ),
     TelecallerModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: []   ,
 })
 export class AppModule {}
