@@ -15,7 +15,7 @@ async function bootstrap() {
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
-      host: '0.0.0.0',
+      host: 'auth-service.lead.microservices.local',
       port: 8001, // Choose a port for microservice communication
     },
   });
