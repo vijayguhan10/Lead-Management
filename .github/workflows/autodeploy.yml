@@ -46,6 +46,15 @@ jobs:
           echo "Resolved DOCKERFILE=$DOCKERFILE"
           echo "Resolved SERVICE_FOLDER=$SERVICE_FOLDER"
 
+      # 🔄 Ensure lockfile exists (fail early)
+      - name: Ensure lockfile exists
+        if: env.SERVICE_CHANGED == 'true'
+        run: |
+          if [ ! -f "$SERVICE_FOLDER/package-lock.json" ]; then
+            echo "::error::Missing package-lock.json in $SERVICE_FOLDER (required for npm ci)."
+            exit 1
+          fi
+
       # 3️⃣ Check if service changed
       - name: Check if service changed
         id: changed
@@ -113,55 +122,85 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # 8️⃣ Register new ECS task definition
+      # 8️⃣ Resolve base TD (from service or family) and register new revision
       - name: Register New ECS Task Definition
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          TASK_DEF_JSON=$(aws ecs describe-task-definition \
-            --task-definition ${{ matrix.service }} \
-            --region ap-south-1 \
-            --query "taskDefinition" \
-            --output json)
+          set -euo pipefail
+          SERVICE_NAME="${{ matrix.service }}"
+          CLUSTER="Lead-Management"
+          REGION="ap-south-1"
+          IMAGE="vijay4230/${{ matrix.service }}:$IMAGE_TAG"
 
-          NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq --arg IMAGE "vijay4230/${{ matrix.service }}:$IMAGE_TAG" '
+          echo "Resolving base task definition for service '$SERVICE_NAME' in $CLUSTER ($REGION)"
+          CURRENT_TD_ARN=$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE_NAME" \
+            --region "$REGION" \
+            --query "services[0].taskDefinition" \
+            --output text 2>/dev/null || true)
+
+          if [ -n "${CURRENT_TD_ARN:-}" ] && [ "$CURRENT_TD_ARN" != "None" ]; then
+            echo "Found current task definition on service: $CURRENT_TD_ARN"
+            TASK_DEF_JSON=$(aws ecs describe-task-definition \
+              --task-definition "$CURRENT_TD_ARN" \
+              --region "$REGION" \
+              --query "taskDefinition" \
+              --output json)
+          else
+            echo "Service not found or no task definition attached; trying family '${SERVICE_NAME}'"
+            if TASK_DEF_JSON=$(aws ecs describe-task-definition \
+              --task-definition "$SERVICE_NAME" \
+              --region "$REGION" \
+              --query "taskDefinition" \
+              --output json 2>/dev/null); then
+              echo "Found family '$SERVICE_NAME'"
+            elif [ -f ".ecs/task-definitions/${SERVICE_NAME}.json" ]; then
+              echo "Using local template .ecs/task-definitions/${SERVICE_NAME}.json"
+              TASK_DEF_JSON="$(cat ".ecs/task-definitions/${SERVICE_NAME}.json")"
+            else
+              echo "::error::No ECS task definition found for '${SERVICE_NAME}' and no template at .ecs/task-definitions/${SERVICE_NAME}.json."
+              echo "Create the service in ECS or add a template file."
+              exit 1
+            fi
+          fi
+
+          NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq --arg IMAGE "$IMAGE" '
             .containerDefinitions |= map(.image = $IMAGE)
             | del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy)
             | { family: .family, containerDefinitions: .containerDefinitions, volumes: .volumes }
             + ( if .taskRoleArn then { taskRoleArn: .taskRoleArn } else {} end )
             + { executionRoleArn: .executionRoleArn, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory }
           ')
-
           echo "$NEW_TASK_DEF" > new-task.json
 
           REGISTER_OUTPUT=$(aws ecs register-task-definition \
             --cli-input-json file://new-task.json \
-            --region ap-south-1)
-
+            --region "$REGION")
           NEW_TASK_DEF_ARN=$(echo "$REGISTER_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
           echo "Registered new task definition: $NEW_TASK_DEF_ARN"
-          echo "$REGISTER_OUTPUT" > register-output.json || true
           echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
       # 9️⃣ Update ECS Service
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
         run: |
+          set -euo pipefail
           SERVICE_NAME=${{ matrix.service }}
-          if [ -n "${NEW_TASK_DEF_ARN-}" ]; then
+          CLUSTER="Lead-Management"
+          REGION="ap-south-1"
+          STATUS=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" --query "services[0].status" --output text 2>/dev/null || true)
+          if [ "$STATUS" = "ACTIVE" ] || [ "$STATUS" = "DRAINING" ]; then
             echo "Updating service ${SERVICE_NAME} to use task definition $NEW_TASK_DEF_ARN"
             aws ecs update-service \
-              --cluster Lead-Management \
+              --cluster "$CLUSTER" \
               --service "$SERVICE_NAME" \
               --task-definition "$NEW_TASK_DEF_ARN" \
               --force-new-deployment \
-              --region ap-south-1
+              --region "$REGION"
           else
-            echo "No new task definition ARN; forcing redeployment"
-            aws ecs update-service \
-              --cluster Lead-Management \
-              --service "$SERVICE_NAME" \
-              --force-new-deployment \
-              --region ap-south-1
+            echo "::warning::ECS service '${SERVICE_NAME}' not found in cluster '${CLUSTER}'. Create it or add a create-service step."
+            exit 0
           fi
 
           echo "Waiting for service to stabilize..."
@@ -216,12 +255,3 @@ jobs:
               </div>
             </body>
             </html>
-
-      # 🔄 Ensure lockfile exists
-      - name: Ensure lockfile exists
-        if: env.SERVICE_CHANGED == 'true'
-        run: |
-          if [ ! -f "$SERVICE_FOLDER/package-lock.json" ]; then
-            echo "::error::Missing package-lock.json in $SERVICE_FOLDER (required for npm ci)."
-            exit 1
-          fi
