@@ -216,3 +216,12 @@ jobs:
               </div>
             </body>
             </html>
+
+      # 🔄 Ensure lockfile exists
+      - name: Ensure lockfile exists
+        if: env.SERVICE_CHANGED == 'true'
+        run: |
+          if [ ! -f "$SERVICE_FOLDER/package-lock.json" ]; then
+            echo "::error::Missing package-lock.json in $SERVICE_FOLDER (required for npm ci)."
+            exit 1
+          fi

@@ -402,7 +402,7 @@ export class LeadService {
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const XLSX = require('xlsx');
-    let wb;
+    let wb  ;
     try {
       wb = XLSX.read(buffer, { type: 'buffer' });
     } catch (err) {
