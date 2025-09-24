@@ -5,6 +5,7 @@ export class HealthController {
   @Get()
   @HttpCode(200)
   getHealth() {
+    console.log('Health check requested');
     return { status: 'ok' };
   }
 }

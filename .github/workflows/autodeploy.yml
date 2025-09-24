@@ -43,8 +43,15 @@ jobs:
               echo "SERVICE_FOLDER=Microservices/${{ matrix.service }}" >> $GITHUB_ENV
               ;;
           esac
+          # Default ECS service name equals matrix service
+          echo "SERVICE_NAME=${{ matrix.service }}" >> $GITHUB_ENV
+          # Override only for lead-service which has a different ECS service name
+          if [ "${{ matrix.service }}" = "lead-service" ]; then
+            echo "SERVICE_NAME=lead-service-service-egvw9vlt" >> $GITHUB_ENV
+          fi
           echo "Resolved DOCKERFILE=$DOCKERFILE"
           echo "Resolved SERVICE_FOLDER=$SERVICE_FOLDER"
+          echo "Resolved SERVICE_NAME=$SERVICE_NAME"
 
       # 🔄 Ensure lockfile exists (fail early)
       - name: Ensure lockfile exists
@@ -127,7 +134,8 @@ jobs:
         if: env.SERVICE_CHANGED == 'true'
         run: |
           set -euo pipefail
-          SERVICE_NAME="${{ matrix.service }}"
+          # Use mapped ECS service name, defaulting to matrix.service if not set
+          SERVICE_NAME="${SERVICE_NAME:-${{ matrix.service }}}"
           CLUSTER="Lead-Management"
           REGION="ap-south-1"
           IMAGE="vijay4230/${{ matrix.service }}:$IMAGE_TAG"
@@ -186,7 +194,8 @@ jobs:
         if: env.SERVICE_CHANGED == 'true'
         run: |
           set -euo pipefail
-          SERVICE_NAME=${{ matrix.service }}
+          # Use mapped ECS service name, defaulting to matrix.service if not set
+          SERVICE_NAME="${SERVICE_NAME:-${{ matrix.service }}}"
           CLUSTER="Lead-Management"
           REGION="ap-south-1"
           STATUS=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE_NAME" --region "$REGION" --query "services[0].status" --output text 2>/dev/null || true)
