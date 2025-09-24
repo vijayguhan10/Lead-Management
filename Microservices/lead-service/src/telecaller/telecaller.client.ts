@@ -7,7 +7,7 @@ import {
 
 @Injectable()
 export class TelecallerClient {
-  private client: ClientProxy;
+  private client: ClientProxy   ;
 
   constructor() {
     console.log("transport layer : ",Transport.TCP);
