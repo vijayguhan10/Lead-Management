@@ -35,7 +35,7 @@ export class TelecallerMicroserviceController {
         return { success: false, error: 'Telecaller not found' };
       }
 
-      // Add the lead ID to the telecaller's assigned leads
+      // Addt  he lead ID to the telecaller's assigned leads
       const updated = await this.telecallerService.update(data.telecallerId, {
         assignedLeads: [...telecaller.assignedLeads, data.leadId],
       });
