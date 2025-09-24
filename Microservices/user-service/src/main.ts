@@ -7,6 +7,6 @@ async function bootstrap() {
     origin: true, 
     credentials: true,
   });
-  await app.listen(process.env.PORT ?? 3007);
+  await app.listen(process.env.PORT ?? 3007, '0.0.0.0');
 }
 bootstrap();

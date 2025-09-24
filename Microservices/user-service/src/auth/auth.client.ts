@@ -9,8 +9,8 @@ export class AuthClient {
     this.client = ClientProxyFactory.create({
       transport: Transport.TCP,
       options: {
-        host: 'auth-service.lead.microservices.local',
-        port: 8001, // auth-service TCP port
+  host: process.env.AUTH_SERVICE_HOST || 'auth-service.lead.microservices.local',
+        port: Number(process.env.AUTH_SERVICE_TCP_PORT) || 8001, // auth-service TCP port
       },
     });
   }
