@@ -11,6 +11,6 @@ import { TelecallerModule } from './telecaller/telecaller.module';
     TelecallerModule,
   ],
   controllers: [],
-  providers: [],
+  providers: []   ,
 })
 export class AppModule {}
