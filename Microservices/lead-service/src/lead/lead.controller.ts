@@ -149,7 +149,7 @@ export class LeadController {
   @Patch(':id/notes')
   updateNotes(
     @Param('id') id: string,
-    @Body('notes') notes: string,
+    @Body('notes') notes: string ,   
     @Body('tags') tags: string[],
     @Body('interestedIn') interestedIn: string[],
     @Body('nextFollowUp') nextFollowUp?: Date | string,
