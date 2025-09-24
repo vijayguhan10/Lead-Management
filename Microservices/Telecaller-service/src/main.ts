@@ -13,8 +13,8 @@ async function bootstrap() {
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
-      host: 'telecaller-service.lead.microservices.local',
-      port: 8006  ,
+      host: process.env.TCP_HOST || '0.0.0.0',
+      port: Number(process.env.TCP_PORT) || 8006,
     },
   });
 
@@ -22,6 +22,6 @@ async function bootstrap() {
   await app.listen(3006); 
 
   console.log(`Telecaller service running on http://localhost:3006`);
-  console.log(`Telecaller microservice running on TCP port 8006`);
+  console.log(`Telecaller microservice running on TCP ${process.env.TCP_HOST || '0.0.0.0'}:${process.env.TCP_PORT || 8006}`);
 }
 bootstrap();
