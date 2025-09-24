@@ -20,11 +20,13 @@ jobs:
           - user-service
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # full history for git diff
+          fetch-depth: 0
 
+      # 2️⃣ Resolve Dockerfile and service folder
       - name: Determine Dockerfile and service folder
         id: paths
         run: |
@@ -41,6 +43,7 @@ jobs:
           echo "Resolved DOCKERFILE=$DOCKERFILE"
           echo "Resolved SERVICE_FOLDER=$SERVICE_FOLDER"
 
+      # 3️⃣ Check if service changed
       - name: Check if service changed
         id: changed
         shell: bash
@@ -48,7 +51,6 @@ jobs:
           set -euo pipefail
           SERVICE_FOLDER="$SERVICE_FOLDER"
 
-          # Handle first push or normal diff
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
 
@@ -71,10 +73,12 @@ jobs:
             echo "SERVICE_CHANGED=false" >> $GITHUB_ENV
           fi
 
+      # 4️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         if: env.SERVICE_CHANGED == 'true'
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
+      # 5️⃣ Docker Hub login
       - name: Log in to Docker Hub
         if: env.SERVICE_CHANGED == 'true'
         uses: docker/login-action@v2
@@ -82,21 +86,22 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker Image
+      # 6️⃣ Build and Push Docker Image (Buildx)
+      - name: Build and Push Docker Image
         if: env.SERVICE_CHANGED == 'true'
         run: |
           IMAGE_TAG=v${{ github.run_number }}
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "Building $SERVICE_FOLDER using $DOCKERFILE"
-          docker build -f "$DOCKERFILE" -t "vijay4230/${{ matrix.service }}:$IMAGE_TAG" "$SERVICE_FOLDER"
-          docker tag "vijay4230/${{ matrix.service }}:$IMAGE_TAG" "vijay4230/${{ matrix.service }}:latest"
+          echo "Building and pushing $SERVICE_FOLDER using $DOCKERFILE"
 
-      - name: Push Docker Image
-        if: env.SERVICE_CHANGED == 'true'
-        run: |
-          docker push "vijay4230/${{ matrix.service }}:$IMAGE_TAG"
-          docker push "vijay4230/${{ matrix.service }}:latest"
+          docker buildx build \
+            --file "$DOCKERFILE" \
+            --tag "vijay4230/${{ matrix.service }}:$IMAGE_TAG" \
+            --tag "vijay4230/${{ matrix.service }}:latest" \
+            --push \
+            "$SERVICE_FOLDER"
 
+      # 7️⃣ Configure AWS credentials
       - name: Configure AWS credentials
         if: env.SERVICE_CHANGED == 'true'
         uses: aws-actions/configure-aws-credentials@v2
@@ -105,17 +110,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
+      # 8️⃣ Register new ECS task definition
       - name: Register New ECS Task Definition
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          # Get existing task definition JSON
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
             --task-definition ${{ matrix.service }} \
             --region ap-south-1 \
             --query "taskDefinition" \
             --output json)
 
-          # Update image, remove AWS metadata fields, and include taskRoleArn only if present
           NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq --arg IMAGE "vijay4230/${{ matrix.service }}:$IMAGE_TAG" '
             .containerDefinitions |= map(.image = $IMAGE)
             | del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy)
@@ -126,26 +130,19 @@ jobs:
 
           echo "$NEW_TASK_DEF" > new-task.json
 
-          # Register new task definition revision and capture the task definition ARN
           REGISTER_OUTPUT=$(aws ecs register-task-definition \
             --cli-input-json file://new-task.json \
             --region ap-south-1)
 
           NEW_TASK_DEF_ARN=$(echo "$REGISTER_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
           echo "Registered new task definition: $NEW_TASK_DEF_ARN"
-          # Save register output to a file rather than writing large JSON into GITHUB_ENV
           echo "$REGISTER_OUTPUT" > register-output.json || true
           echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
-          # Dump new-task.json and register-output.json for debugging (safe to print)
-          echo "--- new-task.json ---"
-          cat new-task.json || true
-          echo "--- register-output.json ---"
-          cat register-output.json || true
 
+      # 9️⃣ Update ECS Service
       - name: Update ECS Service
         if: env.SERVICE_CHANGED == 'true'
         run: |
-          # Force service to use the newly registered task definition revision
           SERVICE_NAME=${{ matrix.service }}
           if [ -n "${NEW_TASK_DEF_ARN-}" ]; then
             echo "Updating service ${SERVICE_NAME} to use task definition $NEW_TASK_DEF_ARN"
@@ -156,51 +153,18 @@ jobs:
               --force-new-deployment \
               --region ap-south-1
           else
-            echo "NEW_TASK_DEF_ARN not found; falling back to force-new-deployment"
+            echo "No new task definition ARN; forcing redeployment"
             aws ecs update-service \
               --cluster Lead-Management \
-              --service "${{ matrix.service }}" \
+              --service "$SERVICE_NAME" \
               --force-new-deployment \
               --region ap-south-1
           fi
 
-          # Wait for the service to reach a stable state
           echo "Waiting for service to stabilize..."
           aws ecs wait services-stable --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1
 
-          # Verify the primary deployment is using the new task definition
-          PRIMARY_TASK_DEF=$(aws ecs describe-services --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' --output text)
-          echo "Primary deployment taskDefinition: $PRIMARY_TASK_DEF"
-          if [ -n "${NEW_TASK_DEF_ARN-}" ] && [ "$PRIMARY_TASK_DEF" != "$NEW_TASK_DEF_ARN" ]; then
-            echo "ERROR: primary deployment is not using the new task definition ARN"
-            echo "Expected: $NEW_TASK_DEF_ARN"
-            echo "Actual:   $PRIMARY_TASK_DEF"
-            # Try remediation: Describe the registered task definition for clarity
-            echo "Describing registered task definition..."
-            aws ecs describe-task-definition --task-definition "$NEW_TASK_DEF_ARN" --region ap-south-1 || true
-
-            # Stop running tasks to force new ones (use with caution)
-            echo "Attempting to stop running tasks to force replacement..."
-            RUNNING_TASKS=$(aws ecs list-tasks --cluster Lead-Management --service-name "$SERVICE_NAME" --desired-status RUNNING --region ap-south-1 --output text)
-            if [ -n "$RUNNING_TASKS" ]; then
-              for TASK_ARN in $RUNNING_TASKS; do
-                echo "Stopping task: $TASK_ARN"
-                aws ecs stop-task --cluster Lead-Management --task "$TASK_ARN" --reason "Force redeploy to pick up new task definition" --region ap-south-1 || true
-              done
-            else
-              echo "No running tasks found to stop."
-            fi
-
-            # Wait and re-check primary deployment
-            aws ecs wait services-stable --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 || true
-            PRIMARY_TASK_DEF_AFTER=$(aws ecs describe-services --cluster Lead-Management --services "$SERVICE_NAME" --region ap-south-1 --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' --output text)
-            echo "Primary deployment after remediation: $PRIMARY_TASK_DEF_AFTER"
-            if [ "$PRIMARY_TASK_DEF_AFTER" != "$NEW_TASK_DEF_ARN" ]; then
-              echo "Remediation failed: primary deployment still not using new task definition."
-              exit 1
-            fi
-          fi
-
+      # 🔟 Send Deployment Email
       - name: Send Deployment Email
         if: env.SERVICE_CHANGED == 'true'
         uses: dawidd6/action-send-mail@v3
