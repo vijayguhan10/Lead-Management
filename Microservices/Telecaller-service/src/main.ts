@@ -14,7 +14,7 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       host: 'telecaller-service.lead.microservices.local',
-      port: 8006,
+      port: 8006  ,
     },
   });
 

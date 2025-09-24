@@ -17,8 +17,9 @@ export class JwtAuthGuard implements CanActivate {
     console.log('Authorization Header:', authHeader);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid authorization token');
+    
     }
-
+ 
     const token = authHeader.split(' ')[1];
     const result = await this.authClient.validateToken(token);
     console.log('Token Validation Result:', result);
