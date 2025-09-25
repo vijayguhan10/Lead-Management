@@ -178,9 +178,13 @@ jobs:
           NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq --arg IMAGE "$IMAGE" '
             .containerDefinitions |= map(.image = $IMAGE)
             | del(.taskDefinitionArn, .revision, .status, .registeredAt, .registeredBy)
-            | { family: .family, containerDefinitions: .containerDefinitions, volumes: .volumes }
+            | { family: .family, containerDefinitions: .containerDefinitions, volumes: (.volumes // []) }
             + ( if .taskRoleArn then { taskRoleArn: .taskRoleArn } else {} end )
-            + { executionRoleArn: .executionRoleArn, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, cpu: .cpu, memory: .memory }
+            + ( if .executionRoleArn then { executionRoleArn: .executionRoleArn } else {} end )
+            + ( if .networkMode then { networkMode: .networkMode } else {} end )
+            + ( if .requiresCompatibilities then { requiresCompatibilities: .requiresCompatibilities } else {} end )
+            + ( if .cpu then { cpu: .cpu } else {} end )
+            + ( if .memory then { memory: .memory } else {} end )
           ')
           echo "$NEW_TASK_DEF" > new-task.json
 

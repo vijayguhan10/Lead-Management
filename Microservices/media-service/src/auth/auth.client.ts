@@ -20,6 +20,7 @@ export class AuthClient {
   }
 
   async validateToken(token: string) {
+    console.log("Validating - token with Auth Service");
     return this.client.send({ cmd: 'validate_token' }, token).toPromise();
   }
 
