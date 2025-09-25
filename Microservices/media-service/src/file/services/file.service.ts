@@ -45,7 +45,7 @@ export class FileService {
       const savedFile = await file.save();
 
       this.logger.log(`Generated upload URL for file: ${getSignedUrlDto.fileName}, leadId: ${getSignedUrlDto.leadId}`);
-
+      console.log("")
       return {
         uploadUrl,
         key,
