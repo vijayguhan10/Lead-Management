@@ -45,9 +45,11 @@ jobs:
           esac
           # Default ECS service name equals matrix service
           echo "SERVICE_NAME=${{ matrix.service }}" >> $GITHUB_ENV
-          # Override only for lead-service which has a different ECS service name
+          # Override for services which have different ECS service names
           if [ "${{ matrix.service }}" = "lead-service" ]; then
             echo "SERVICE_NAME=lead-service-service-egvw9vlt" >> $GITHUB_ENV
+          elif [ "${{ matrix.service }}" = "media-service" ]; then
+            echo "SERVICE_NAME=media-service-service-4v01q4yj" >> $GITHUB_ENV
           fi
           echo "Resolved DOCKERFILE=$DOCKERFILE"
           echo "Resolved SERVICE_FOLDER=$SERVICE_FOLDER"
