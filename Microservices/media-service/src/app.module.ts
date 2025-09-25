@@ -14,7 +14,7 @@ import { HealthController } from './health.controller';
     }),
     MongooseModule.forRootAsync({
       useFactory: async () => ({
-        uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/media-service',
+        uri: process.env.MONGODB_URI || 'mongodb+srv://vijayguhan10:TN30e4230!@cluster0.swhz00z.mongodb.net/media-service',
       }),
     }),
     FileModule,
