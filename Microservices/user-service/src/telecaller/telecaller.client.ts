@@ -9,7 +9,7 @@ export class TelecallerClient {
     this.client = ClientProxyFactory.create({
       transport: Transport.TCP,
       options: {
-  host: process.env.TELECALLER_SERVICE_HOST || 'telecaller-service.lead.microservices.local',
+        host: 'localhost',
         port: Number(process.env.TELECALLER_SERVICE_TCP_PORT) || 8006, // telecaller-service TCP port
       },
     });
