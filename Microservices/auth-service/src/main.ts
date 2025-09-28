@@ -16,7 +16,7 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       // Bind to all interfaces inside the container/host. Use env to override in different envs.
-      host: process.env.TCP_HOST || '0.0.0.0',
+      host: 'localhost',
       port: Number(process.env.TCP_PORT) || 8001, // Port for microservice communication
     },
   });

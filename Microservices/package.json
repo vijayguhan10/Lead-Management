@@ -9,7 +9,10 @@
   "start:notification": "npm --prefix ./notification-service run start:dev",
   "start:telecaller": "npm --prefix ./Telecaller-service run start:dev",
   "start:user": "npm --prefix ./user-service run start:dev",
-  "dev:test": "concurrently \"npm run start:auth\" \"npm run start:call\" \"npm run start:lead\" \"npm run start:media\" \"npm run start:notification\" \"npm run start:telecaller\" \"npm run start:user\""
+  "dev:test": "concurrently \"npm run start:auth\" \"npm run start:call\" \"npm run start:lead\" \"npm run start:media\" \"npm run start:notification\" \"npm run start:telecaller\" \"npm run start:user\"",
+  "start:prod": "concurrently \"npm --prefix ./auth-service run start:prod\" \"npm --prefix ./call-service run start:prod\" \"npm --prefix ./lead-service run start:prod\" \"npm --prefix ./media-service run start:prod\" \"npm --prefix ./notification-service run start:prod\" \"npm --prefix ./Telecaller-service run start:prod\" \"npm --prefix ./user-service run start:prod\"",
+  "build:all": "concurrently \"npm --prefix ./auth-service run build\" \"npm --prefix ./call-service run build\" \"npm --prefix ./lead-service run build\" \"npm --prefix ./media-service run build\" \"npm --prefix ./notification-service run build\" \"npm --prefix ./Telecaller-service run build\" \"npm --prefix ./user-service run build\"",
+  "build-and-start": "npm run build:all && npm run start:prod"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
