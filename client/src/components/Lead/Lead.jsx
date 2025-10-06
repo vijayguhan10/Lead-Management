@@ -6,8 +6,6 @@ import {
   FaArrowRight,
   FaDownload,
   FaFileImport,
-  FaEye,
-  FaCommentDots,
   FaEdit,
   FaFolderOpen,
 } from "react-icons/fa";
@@ -794,7 +792,7 @@ const Lead = () => {
                 Created
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
-                View
+                Edit
               </th>
               <th className="py-3 px-4 text-left font-semibold border-b">
                 Files
@@ -931,36 +929,16 @@ const Lead = () => {
                       : "Just now"}
                   </td>
                   <td className="py-3 px-4 border-b">
-                    <div
-                      className={
-                        role === "telecaller"
-                          ? "flex items-center justify-center"
-                          : "flex gap-2 items-center"
-                      }
-                    >
-                      {role === "telecaller" ? (
-                        <FaEdit
-                          className="text-green-500 hover:text-green-700 cursor-pointer"
-                          title="Edit Notes/Tags"
-                          onClick={() => setEditLead(lead)}
-                        />
-                      ) : (
-                        <>
-                          <FaEye
-                            className="text-blue-500 hover:text-blue-700 cursor-pointer"
-                            onClick={() => setSelectedLead(lead)}
-                          />
-                          <FaEdit
-                            className="text-green-500 hover:text-green-700 cursor-pointer"
-                            title="Edit Lead"
-                            onClick={() => setEditLead(lead)}
-                          />
-                          <FaCommentDots
-                            className="text-yellow-500 hover:text-yellow-700 cursor-pointer"
-                            title="Add/View Notes"
-                          />
-                        </>
-                      )}
+                    <div className="flex items-center justify-center">
+                      <FaEdit
+                        className="text-green-500 hover:text-green-700 cursor-pointer"
+                        title={
+                          role === "telecaller"
+                            ? "Edit Notes/Tags"
+                            : "Edit Lead"
+                        }
+                        onClick={() => setEditLead(lead)}
+                      />
                     </div>
                   </td>
                   <td className="py-3 px-4 border-b">
