@@ -43,6 +43,28 @@ const Lead = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Advanced filtering states
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Available filter options
+  const statusOptions = [
+    "New",
+    "Contacted",
+    "Qualified",
+    "Converted",
+    "Dropped",
+  ];
+
+  // Get unique sources from actual leads data
+  const sourceOptions = React.useMemo(() => {
+    const uniqueSources = [
+      ...new Set(leads.map((lead) => lead.source).filter(Boolean)),
+    ];
+    return uniqueSources.sort();
+  }, [leads]);
+
   const orgId =
     localStorage.getItem("organizationId") ||
     localStorage.getItem("orgId") ||
@@ -164,16 +186,28 @@ const Lead = () => {
       lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
+    // status filter
+    const matchesStatus =
+      statusFilter === "all" || lead.status === statusFilter;
+
+    // source filter
+    const matchesSource =
+      sourceFilter === "all" || lead.source === sourceFilter;
+
     // telecaller filter: 'all', 'unassigned', or telecaller id
-    if (telecallerFilter === "all") return matchesSearch;
-    if (telecallerFilter === "unassigned")
-      return matchesSearch && !lead.assignedTo;
-    // specific telecaller id
-    return (
-      matchesSearch &&
-      (String(lead.assignedTo) === String(telecallerFilter) ||
-        String(lead.assignedTo?._id) === String(telecallerFilter))
-    );
+    let matchesTelecaller = true;
+    if (telecallerFilter !== "all") {
+      if (telecallerFilter === "unassigned") {
+        matchesTelecaller = !lead.assignedTo;
+      } else {
+        // specific telecaller id
+        matchesTelecaller =
+          String(lead.assignedTo) === String(telecallerFilter) ||
+          String(lead.assignedTo?._id) === String(telecallerFilter);
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesSource && matchesTelecaller;
   });
 
   const indexOfLastLead = currentPage * leadsPerPage;
@@ -220,8 +254,14 @@ const Lead = () => {
 
   const exportLeads = () => {
     const token = localStorage.getItem("jwt_token");
-  const orgId = localStorage.getItem('organizationId') || localStorage.getItem('orgId') || localStorage.getItem('org') || '';
-  const url = `${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/export?organizationId=${encodeURIComponent(orgId)}`;
+    const orgId =
+      localStorage.getItem("organizationId") ||
+      localStorage.getItem("orgId") ||
+      localStorage.getItem("org") ||
+      "";
+    const url = `${
+      import.meta.env.VITE_LEAD_SERVICE_URL
+    }/leads/export?organizationId=${encodeURIComponent(orgId)}`;
     fetch(url, {
       method: "GET",
       headers: {
@@ -236,7 +276,10 @@ const Lead = () => {
         const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = downloadUrl;
-        a.download = `leads_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.xlsx`;
+        a.download = `leads_export_${new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/[:T]/g, "-")}.xlsx`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -259,29 +302,41 @@ const Lead = () => {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const dataUrl = evt.target.result; // data:application/...;base64,XXXX
-      const base64 = dataUrl.split(',')[1];
+      const base64 = dataUrl.split(",")[1];
       try {
-        const token = localStorage.getItem('jwt_token');
-        const orgId = localStorage.getItem('organizationId') || localStorage.getItem('orgId') || '';
-        const res = await fetch(`${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/import`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ fileBase64: base64, organizationId: orgId, createdBy: localStorage.getItem('userId') || undefined }),
-        });
+        const token = localStorage.getItem("jwt_token");
+        const orgId =
+          localStorage.getItem("organizationId") ||
+          localStorage.getItem("orgId") ||
+          "";
+        const res = await fetch(
+          `${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/import`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              fileBase64: base64,
+              organizationId: orgId,
+              createdBy: localStorage.getItem("userId") || undefined,
+            }),
+          }
+        );
         const json = await res.json();
         if (res.ok) {
-          toast.success(`Import completed: created ${json.created}, updated ${json.updated}`);
+          toast.success(
+            `Import completed: created ${json.created}, updated ${json.updated}`
+          );
           setShowImportModal(false);
           refetchLeads();
         } else {
-          toast.error(json.error || 'Import failed');
+          toast.error(json.error || "Import failed");
         }
       } catch (err) {
         console.error(err);
-        toast.error(err.message || 'Import failed');
+        toast.error(err.message || "Import failed");
       }
     };
     reader.readAsDataURL(file);
@@ -289,24 +344,47 @@ const Lead = () => {
 
   const downloadImportSample = async () => {
     try {
-      const token = localStorage.getItem('jwt_token');
-      const url = `${import.meta.env.VITE_LEAD_SERVICE_URL}/leads/import/sample`;
-      const res = await fetch(url, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-      if (!res.ok) throw new Error('Failed to fetch sample');
+      const token = localStorage.getItem("jwt_token");
+      const url = `${
+        import.meta.env.VITE_LEAD_SERVICE_URL
+      }/leads/import/sample`;
+      const res = await fetch(url, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) throw new Error("Failed to fetch sample");
       const blob = await res.blob();
       const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = downloadUrl;
-      a.download = 'leads_import_sample.xlsx';
+      a.download = "leads_import_sample.xlsx";
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(downloadUrl);
-      toast.success('Sample downloaded');
+      toast.success("Sample downloaded");
     } catch (err) {
       console.error(err);
-      toast.error(err.message || 'Failed to download sample');
+      toast.error(err.message || "Failed to download sample");
     }
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setStatusFilter("all");
+    setSourceFilter("all");
+    setTelecallerFilter("all");
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  // Get count of active filters
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (statusFilter !== "all") count++;
+    if (sourceFilter !== "all") count++;
+    if (telecallerFilter !== "all") count++;
+    if (searchTerm.trim()) count++;
+    return count;
   };
 
   return (
@@ -349,111 +427,332 @@ const Lead = () => {
       )}
 
       {/* Bulk Actions & Search */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-2">
-          {role !== "telecaller" && (
-            <>
-              <button
-                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-                onClick={bulkAssign}
-              >
-                Smart Assign
-              </button>
-              <button
-                className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
-                onClick={exportLeads}
-              >
-                <FaDownload /> Export
-              </button>
-              <button
-                className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2"
-                onClick={() => setShowImportModal(true)}
-              >
-                <FaFileImport /> Import
-              </button>
-              <button
-                className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-                onClick={() => setShowIndividualAssign(true)}
-              >
-                Add Individual
-              </button>
-            </>
-          )}
-        </div>
-        {/* Telecaller filter (admin only) */}
-        {role === "admin" && (
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="telecaller-filter"
-              className="text-sm font-medium text-gray-700"
+      <div className="space-y-4 mb-6">
+        {/* Top Row: Actions and Search */}
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            {role !== "telecaller" && (
+              <>
+                <button
+                  className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                  onClick={bulkAssign}
+                >
+                  Smart Assign
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
+                  onClick={exportLeads}
+                >
+                  <FaDownload /> Export
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2"
+                  onClick={() => setShowImportModal(true)}
+                >
+                  <FaFileImport /> Import
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                  onClick={() => setShowIndividualAssign(true)}
+                >
+                  Add Individual
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Filters Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-4 py-2 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 font-medium ${
+                showFilters
+                  ? "bg-[#FFD700] border-[#FFD700] text-[#222]"
+                  : "bg-white border-gray-300 text-gray-700 hover:border-[#FFD700]"
+              }`}
             >
-              Telecaller
-            </label>
-            <div className="relative">
-              <select
-                id="telecaller-filter"
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-full text-sm bg-white shadow-sm"
-                value={telecallerFilter}
-                onChange={(e) => {
-                  setTelecallerFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <option value="all">All telecallers</option>
-                <option value="unassigned">Unassigned</option>
-                {telecallers.map((t) => (
-                  <option key={t._id || t.id} value={t._id || t.id}>
-                    {t.name || t.fullName || t.firstName}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                ▼
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
+                />
+              </svg>
+              Filters
+              {getActiveFiltersCount() > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                  {getActiveFiltersCount()}
+                </span>
+              )}
+            </button>
+
+            {/* Search */}
+            <div className="relative w-64">
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-3 pl-10 border border-[#FFD700] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] bg-[#FFFDEB] text-[#222]"
+              />
+              <span className="absolute left-3 top-3 text-[#FFD700]">
+                <FaSearch />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Advanced Filters
+              </h3>
+              {getActiveFiltersCount() > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Status
+                </label>
+                <div className="relative">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700]"
+                  >
+                    <option value="all">All Status</option>
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▼
+                  </div>
+                </div>
+              </div>
+
+              {/* Source Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Source
+                </label>
+                <div className="relative">
+                  <select
+                    value={sourceFilter}
+                    onChange={(e) => {
+                      setSourceFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700]"
+                  >
+                    <option value="all">All Sources</option>
+                    {sourceOptions.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▼
+                  </div>
+                </div>
+              </div>
+
+              {/* Telecaller Filter (Admin only) */}
+              {role === "admin" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Telecaller
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={telecallerFilter}
+                      onChange={(e) => {
+                        setTelecallerFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700]"
+                    >
+                      <option value="all">All Telecallers</option>
+                      <option value="unassigned">Unassigned</option>
+                      {telecallers.map((t) => (
+                        <option key={t._id || t.id} value={t._id || t.id}>
+                          {t.name || t.fullName || t.firstName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      ▼
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rows per page */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Rows per page
+                </label>
+                <div className="relative">
+                  <select
+                    value={rowsPerPageChoice}
+                    onChange={(e) => {
+                      setRowsPerPageChoice(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="w-full appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700]"
+                  >
+                    {Array.from({ length: 10 }).map((_, i) => {
+                      const v = i + 1;
+                      return (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▼
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Rows per page (1-10) */}
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="lead-rows-per-page"
-                className="text-sm text-gray-600"
-              >
-                Rows
-              </label>
-              <select
-                id="lead-rows-per-page"
-                className="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white shadow-sm"
-                value={rowsPerPageChoice}
-                onChange={(e) => {
-                  setRowsPerPageChoice(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                {Array.from({ length: 10 }).map((_, i) => {
-                  const v = i + 1;
-                  return (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            {/* Applied Filters Display */}
+            {getActiveFiltersCount() > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-gray-600">
+                    Applied filters:
+                  </span>
+                  {statusFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                      Status: {statusFilter}
+                      <button
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {sourceFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                      Source: {sourceFilter}
+                      <button
+                        onClick={() => {
+                          setSourceFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 text-green-600 hover:text-green-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {telecallerFilter !== "all" && role === "admin" && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full">
+                      Telecaller:{" "}
+                      {telecallerFilter === "unassigned"
+                        ? "Unassigned"
+                        : telecallers.find(
+                            (t) => (t._id || t.id) === telecallerFilter
+                          )?.name || telecallerFilter}
+                      <button
+                        onClick={() => {
+                          setTelecallerFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 text-purple-600 hover:text-purple-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {searchTerm.trim() && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
+                      Search: "{searchTerm}"
+                      <button
+                        onClick={() => {
+                          setSearchTerm("");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-1 text-yellow-600 hover:text-yellow-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
+      </div>
 
-        <div className="relative w-64">
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-3 pl-10 border border-[#FFD700] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700] bg-[#FFFDEB] text-[#222]"
-          />
-          <span className="absolute left-3 top-3 text-[#FFD700]">
-            <FaSearch />
-          </span>
+      {/* Results Summary */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Showing{" "}
+          <span className="font-semibold text-gray-900">
+            {currentLeads.length}
+          </span>{" "}
+          of{" "}
+          <span className="font-semibold text-gray-900">
+            {filteredLeads.length}
+          </span>{" "}
+          leads
+          {filteredLeads.length !== totalLeads && (
+            <span className="text-gray-500">
+              {" "}
+              (filtered from {totalLeads} total)
+            </span>
+          )}
         </div>
+        {getActiveFiltersCount() > 0 && (
+          <div className="text-sm text-gray-500">
+            {getActiveFiltersCount()} filter
+            {getActiveFiltersCount() > 1 ? "s" : ""} applied
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -511,8 +810,50 @@ const Lead = () => {
               </tr>
             ) : currentLeads.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center py-8 text-gray-500">
-                  No leads found.
+                <td colSpan={10} className="text-center py-12">
+                  <div className="flex flex-col items-center space-y-3">
+                    <svg
+                      className="w-16 h-16 text-gray-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <div className="text-gray-500">
+                      {getActiveFiltersCount() > 0 ? (
+                        <div className="text-center">
+                          <p className="text-lg font-medium mb-2">
+                            No leads match your filters
+                          </p>
+                          <p className="text-sm mb-4">
+                            Try adjusting your search criteria or clearing some
+                            filters
+                          </p>
+                          <button
+                            onClick={clearAllFilters}
+                            className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg font-medium hover:bg-[#FFFDEB] transition"
+                          >
+                            Clear All Filters
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-lg font-medium mb-2">
+                            No leads found
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            Start by adding some leads to your organization
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -710,9 +1051,9 @@ const Lead = () => {
           <div
             className="absolute inset-0 transition-opacity"
             style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px) brightness(0.8)',
-              WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px) brightness(0.8)",
+              WebkitBackdropFilter: "blur(10px) brightness(0.8)",
             }}
           ></div>
           <TelecallerAssignInfo
@@ -766,14 +1107,17 @@ const Lead = () => {
           <div
             className="absolute inset-0 transition-opacity"
             style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px) brightness(0.8)',
-              WebkitBackdropFilter: 'blur(10px) brightness(0.8)'
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px) brightness(0.8)",
+              WebkitBackdropFilter: "blur(10px) brightness(0.8)",
             }}
           ></div>
           <div className="bg-white rounded-lg shadow-xl p-6 z-10 w-96">
             <h3 className="text-lg font-bold mb-4">Import Leads</h3>
-            <p className="text-sm text-gray-600 mb-4">You can download a sample file to see the required format, or upload your .xlsx file to import leads.</p>
+            <p className="text-sm text-gray-600 mb-4">
+              You can download a sample file to see the required format, or
+              upload your .xlsx file to import leads.
+            </p>
             <div className="flex gap-2 mb-4">
               <button
                 className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:opacity-90"
