@@ -251,43 +251,96 @@ const Lead = () => {
   };
 
   const exportLeads = () => {
-    const token = localStorage.getItem("jwt_token");
-    const orgId =
-      localStorage.getItem("organizationId") ||
-      localStorage.getItem("orgId") ||
-      localStorage.getItem("org") ||
-      "";
-    const url = `${
-      import.meta.env.VITE_LEAD_SERVICE_URL
-    }/leads/export?organizationId=${encodeURIComponent(orgId)}`;
-    fetch(url, {
-      method: "GET",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-        return res.blob();
-      })
-      .then((blob) => {
-        const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = `leads_export_${new Date()
-          .toISOString()
-          .slice(0, 19)
-          .replace(/[:T]/g, "-")}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(downloadUrl);
-        toast.success("Export started");
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error(err.message || "Failed to export leads");
-      });
+    // Export the currently filtered leads (all matches, not just the current page)
+    if (!filteredLeads || filteredLeads.length === 0) {
+      toast.info("No leads to export (nothing matches current filters)");
+      return;
+    }
+
+    const rows = filteredLeads.map((l) => ({
+      id: l._id || l.id,
+      name: l.name || "",
+      phone: l.phone || "",
+      email: l.email || "",
+      source: l.source || "",
+      assignedTo: (() => {
+        try {
+          if (!l.assignedTo) return "";
+          const assignedId = l.assignedTo;
+          const tc = telecallers.find((t) =>
+            [t.id, t._id, t.userId, t.user?.id, t.user?._id].some(
+              (k) => String(k) === String(assignedId)
+            )
+          );
+          return tc
+            ? tc.name || tc.fullName || tc.firstName
+            : String(assignedId);
+        } catch (e) {
+          return String(l.assignedTo || "");
+        }
+      })(),
+      status: l.status || "",
+      priority: l.priority || "",
+      createdAt: l.createdAt ? new Date(l.createdAt).toLocaleString() : "",
+      tags: Array.isArray(l.tags) ? l.tags.join("; ") : l.tags || "",
+      notes: l.notes ? String(l.notes).replace(/\r?\n/g, " ") : "",
+    }));
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      if (s.includes(",") || s.includes("\n") || s.includes('"')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const headers = [
+      "ID",
+      "Name",
+      "Phone",
+      "Email",
+      "Source",
+      "Assigned To",
+      "Status",
+      "Priority",
+      "Created At",
+      "Tags",
+      "Notes",
+    ];
+
+    const csvLines = [headers.join(",")];
+    for (const r of rows) {
+      const line = [
+        escapeCsv(r.id),
+        escapeCsv(r.name),
+        escapeCsv(r.phone),
+        escapeCsv(r.email),
+        escapeCsv(r.source),
+        escapeCsv(r.assignedTo),
+        escapeCsv(r.status),
+        escapeCsv(r.priority),
+        escapeCsv(r.createdAt),
+        escapeCsv(r.tags),
+        escapeCsv(r.notes),
+      ].join(",");
+      csvLines.push(line);
+    }
+
+    const csvContent = csvLines.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `leads_export_${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(downloadUrl);
+    toast.success("Export ready: downloading filtered leads");
   };
 
   const bulkAssign = () => {
@@ -429,34 +482,38 @@ const Lead = () => {
         {/* Top Row: Actions and Search */}
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
-            {role !== "telecaller" && (
-              <>
-                <button
-                  className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-                  onClick={bulkAssign}
-                >
-                  Smart Assign
-                </button>
-                <button
-                  className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
-                  onClick={exportLeads}
-                >
-                  <FaDownload /> Export
-                </button>
-                <button
-                  className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2"
-                  onClick={() => setShowImportModal(true)}
-                >
-                  <FaFileImport /> Import
-                </button>
-                <button
-                  className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
-                  onClick={() => setShowIndividualAssign(true)}
-                >
-                  Add Individual
-                </button>
-              </>
-            )}
+            <>
+              {role !== "telecaller" && (
+                <>
+                  <button
+                    className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                    onClick={bulkAssign}
+                  >
+                    Smart Assign
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-[#E6F9E5] text-[#222] rounded-lg shadow font-bold hover:bg-[#B7EFC5] transition flex items-center gap-2"
+                    onClick={() => setShowImportModal(true)}
+                  >
+                    <FaFileImport /> Import
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-[#FFD700] text-[#222] rounded-lg shadow font-bold hover:bg-[#FFFDEB] transition"
+                    onClick={() => setShowIndividualAssign(true)}
+                  >
+                    Add Individual
+                  </button>
+                </>
+              )}
+
+              {/* Export is available to all roles (exports currently filtered leads client-side) */}
+              <button
+                className="px-4 py-2 bg-[#222] text-[#FFD700] rounded-lg shadow font-bold hover:bg-[#444] transition flex items-center gap-2"
+                onClick={exportLeads}
+              >
+                <FaDownload /> Export
+              </button>
+            </>
           </div>
 
           <div className="flex items-center gap-4">
