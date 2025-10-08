@@ -94,6 +94,12 @@ export class Lead {
 
   @Prop()
   conversionScore?: number;
+
+  @Prop()
+  convertedAt?: Date;
+
+  @Prop()
+  assignedAt?: Date;
 }
 
 export const LeadSchema = SchemaFactory.createForClass(Lead);

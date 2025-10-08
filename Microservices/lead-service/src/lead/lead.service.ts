@@ -106,6 +106,7 @@ export class LeadService {
     // If converting lead, set conversion date
     if (status === LeadStatus.Converted) {
       lead.lastContacted = new Date();
+      lead.convertedAt = new Date();
     }
 
     return lead.save();
@@ -130,6 +131,7 @@ export class LeadService {
 
     // Assign the lead in both services
     lead.assignedTo = telecallerId;
+    lead.assignedAt = new Date();
 
     // Update the telecaller's assigned leads via the microservice
     const assignResult = await this.telecallerClient.assignLead(
@@ -471,5 +473,109 @@ export class LeadService {
     }
 
     return result;
+  }
+
+  // Dashboard analytics: comprehensive metrics for admin dashboard
+  async getDashboardAnalytics(organizationId: string): Promise<any> {
+    const filter: any = {};
+    if (organizationId) filter.organizationId = organizationId;
+
+    const allLeads = await this.leadModel.find(filter).lean().exec();
+
+    // Basic metrics
+    const totalLeads = allLeads.length;
+    const assignedLeads = allLeads.filter((l) => l.assignedTo).length;
+    const convertedLeads = allLeads.filter((l) => l.status === LeadStatus.Converted).length;
+    const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(2) : '0.00';
+
+    // Monthly conversion and assignment data for the past 12 months
+    const now = new Date();
+    const monthlyConversions: Array<{ month: string; converted: number; assigned: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const converted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Converted || !l.convertedAt) return false;
+        const convDate = new Date(l.convertedAt);
+        return convDate >= targetMonth && convDate < nextMonth;
+      }).length;
+
+      const assigned = allLeads.filter((l) => {
+        if (!l.assignedAt) return false;
+        const assignDate = new Date(l.assignedAt);
+        return assignDate >= targetMonth && assignDate < nextMonth;
+      }).length;
+
+      monthlyConversions.push({
+        month: targetMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        converted,
+        assigned,
+      });
+    }
+
+    // Telecaller performance stats
+    const telecallerStats = {};
+    allLeads.forEach((lead) => {
+      if (!lead.assignedTo) return;
+      const tcId = String(lead.assignedTo);
+      if (!telecallerStats[tcId]) {
+        telecallerStats[tcId] = {
+          telecallerId: tcId,
+          totalAssigned: 0,
+          converted: 0,
+          contacted: 0,
+          qualified: 0,
+          new: 0,
+          dropped: 0,
+        };
+      }
+      telecallerStats[tcId].totalAssigned++;
+      if (lead.status === LeadStatus.Converted) telecallerStats[tcId].converted++;
+      if (lead.status === LeadStatus.Contacted) telecallerStats[tcId].contacted++;
+      if (lead.status === LeadStatus.Qualified) telecallerStats[tcId].qualified++;
+      if (lead.status === LeadStatus.New) telecallerStats[tcId].new++;
+      if (lead.status === LeadStatus.Dropped) telecallerStats[tcId].dropped++;
+    });
+
+    const telecallerPerformance = Object.values(telecallerStats).map((stat: any) => ({
+      ...stat,
+      conversionRate: stat.totalAssigned > 0 ? ((stat.converted / stat.totalAssigned) * 100).toFixed(2) : '0.00',
+    }));
+
+    // Source-based conversion analytics
+    const sourceStats = {};
+    allLeads.forEach((lead) => {
+      const source = lead.source || 'Unknown';
+      if (!sourceStats[source]) {
+        sourceStats[source] = {
+          source,
+          total: 0,
+          converted: 0,
+        };
+      }
+      sourceStats[source].total++;
+      if (lead.status === LeadStatus.Converted) {
+        sourceStats[source].converted++;
+      }
+    });
+
+    const sourceConversions = Object.values(sourceStats).map((stat: any) => ({
+      ...stat,
+      conversionRate: stat.total > 0 ? ((stat.converted / stat.total) * 100).toFixed(2) : '0.00',
+    })).sort((a: any, b: any) => b.converted - a.converted);
+
+    return {
+      overview: {
+        totalLeads,
+        assignedLeads,
+        convertedLeads,
+        conversionRate,
+        unassignedLeads: totalLeads - assignedLeads,
+      },
+      monthlyConversions,
+      telecallerPerformance,
+      sourceConversions,
+    };
   }
 }

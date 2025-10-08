@@ -32,6 +32,12 @@ export class LeadController {
     return this.leadService.findAllOrganizationLeads(query, param);
   }
 
+  // Dashboard analytics endpoint
+  @Get('dashboard/analytics/:organizationId')
+  async getDashboardAnalytics(@Param('organizationId') organizationId: string) {
+    return this.leadService.getDashboardAnalytics(organizationId);
+  }
+
   // Export leads to XLSX.
   @Get('export')
   async exportLeads(@Query() query: any, @Res() res: any) {
