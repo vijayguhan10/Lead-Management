@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 import {
   FaUserCircle,
   FaSpinner,
@@ -15,6 +16,7 @@ import { useApi } from "../../../hooks/useApi";
  * TelecallerStatsCard - Displays top performer with modal for all telecallers
  */
 const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
+  const navigate = useNavigate();
   const [telecallersWithNames, setTelecallersWithNames] = useState([]);
   const [loadingNames, setLoadingNames] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,9 +37,11 @@ const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
 
   // Helper function to get card background classes
   const getCardClasses = (index) => {
-    if (index === 0) return "from-yellow-50 via-white to-yellow-50 border-yellow-300";
+    if (index === 0)
+      return "from-yellow-50 via-white to-yellow-50 border-yellow-300";
     if (index === 1) return "from-gray-50 via-white to-gray-50 border-gray-300";
-    if (index === 2) return "from-orange-50 via-white to-orange-50 border-orange-300";
+    if (index === 2)
+      return "from-orange-50 via-white to-orange-50 border-orange-300";
     return "from-gray-50 to-white border-gray-200";
   };
 
@@ -64,7 +68,9 @@ const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
             email: telecaller?.email || "",
           };
         })
-        .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
+        .sort(
+          (a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate)
+        );
       setTelecallersWithNames(enriched);
       setLoadingNames(false);
     }
@@ -98,9 +104,7 @@ const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <FaTrophy className="text-2xl text-yellow-500" />
-            <h3 className="font-bold text-gray-800 text-lg">
-              Top Performer
-            </h3>
+            <h3 className="font-bold text-gray-800 text-lg">Top Performer</h3>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
@@ -158,34 +162,46 @@ const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
                 <div className="text-2xl font-bold text-blue-700">
                   {topPerformer.totalAssigned}
                 </div>
-                <div className="text-xs text-gray-600 font-medium">Total Assigned</div>
+                <div className="text-xs text-gray-600 font-medium">
+                  Total Assigned
+                </div>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 text-center border border-green-200">
                 <div className="text-2xl font-bold text-green-700">
                   {topPerformer.converted}
                 </div>
-                <div className="text-xs text-gray-600 font-medium">Converted</div>
+                <div className="text-xs text-gray-600 font-medium">
+                  Converted
+                </div>
               </div>
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-3 text-center border border-yellow-200">
                 <div className="text-2xl font-bold text-yellow-700">
                   {topPerformer.contacted}
                 </div>
-                <div className="text-xs text-gray-600 font-medium">Contacted</div>
+                <div className="text-xs text-gray-600 font-medium">
+                  Contacted
+                </div>
               </div>
             </div>
 
             {/* Additional Stats */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs bg-gray-50 rounded-lg p-3">
               <div>
-                <span className="font-bold text-purple-600">{topPerformer.qualified}</span>
+                <span className="font-bold text-purple-600">
+                  {topPerformer.qualified}
+                </span>
                 <div className="text-gray-600">Qualified</div>
               </div>
               <div>
-                <span className="font-bold text-blue-600">{topPerformer.new}</span>
+                <span className="font-bold text-blue-600">
+                  {topPerformer.new}
+                </span>
                 <div className="text-gray-600">New</div>
               </div>
               <div>
-                <span className="font-bold text-red-600">{topPerformer.dropped}</span>
+                <span className="font-bold text-red-600">
+                  {topPerformer.dropped}
+                </span>
                 <div className="text-gray-600">Dropped</div>
               </div>
             </div>
@@ -201,122 +217,147 @@ const TelecallerStatsCard = ({ telecallerPerformance, loading }) => {
             type="button"
             aria-label="Close modal"
             className="fixed inset-0 z-50 w-full h-full cursor-default"
-            style={{ 
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            style={{
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
             }}
             onClick={() => setIsModalOpen(false)}
           />
-          
+
           {/* Modal Content */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-slideUp pointer-events-auto">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white p-6 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <FaUsers className="text-3xl" />
-                <div>
-                  <h2 id="modal-title" className="text-2xl font-bold">All Telecallers Performance</h2>
-                  <p className="text-purple-100 text-sm">
-                    Comprehensive overview of {telecallersWithNames.length} telecaller(s)
-                  </p>
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white p-6 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <FaUsers className="text-3xl" />
+                  <div>
+                    <h2 id="modal-title" className="text-2xl font-bold">
+                      All Telecallers Performance
+                    </h2>
+                    <p className="text-purple-100 text-sm">
+                      Comprehensive overview of {telecallersWithNames.length}{" "}
+                      telecaller(s)
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close modal"
+                  className="bg-white text-gray-800 hover:bg-gray-100 transition-all rounded-full p-2 shadow-md"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close modal"
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 transition-all rounded-full p-2"
-              >
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="space-y-4">
-                {telecallersWithNames.map((tc, index) => (
-                  <div
-                    key={tc.telecallerId}
-                    className={`bg-gradient-to-r rounded-xl p-5 border-2 shadow-md hover:shadow-lg transition-all ${getCardClasses(index)}`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        {/* Rank Badge */}
-                        <div className="relative">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-md ${getRankBadgeClasses(index)}`}>
-                            {getRankIcon(index)}
-                          </div>
-                        </div>
-
-                        {/* Telecaller Info */}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <div className="font-bold text-lg text-gray-800">
-                              {tc.name}
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="space-y-4">
+                  {telecallersWithNames.map((tc, index) => (
+                    <div
+                      key={tc.telecallerId}
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        navigate(`/admin/telecaller/${tc.telecallerId}`);
+                      }}
+                      className={`bg-gradient-to-r rounded-xl p-5 border-2 shadow-md hover:shadow-lg transition-all cursor-pointer ${getCardClasses(
+                        index
+                      )}`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          {/* Rank Badge */}
+                          <div className="relative">
+                            <div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-md ${getRankBadgeClasses(
+                                index
+                              )}`}
+                            >
+                              {getRankIcon(index)}
                             </div>
-                            {index === 0 && (
-                              <span className="bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
-                                TOP
-                              </span>
+                          </div>
+
+                          {/* Telecaller Info */}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-bold text-lg text-gray-800">
+                                {tc.name}
+                              </div>
+                              {index === 0 && (
+                                <span className="bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
+                                  TOP
+                                </span>
+                              )}
+                            </div>
+                            {tc.email && (
+                              <div className="text-sm text-gray-500">
+                                {tc.email}
+                              </div>
                             )}
                           </div>
-                          {tc.email && (
-                            <div className="text-sm text-gray-500">{tc.email}</div>
-                          )}
+                        </div>
+
+                        {/* Conversion Rate */}
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-[#7C3AED]">
+                            {tc.conversionRate}%
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Conversion Rate
+                          </div>
                         </div>
                       </div>
 
-                      {/* Conversion Rate */}
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-[#7C3AED]">
-                          {tc.conversionRate}%
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-200">
+                          <div className="text-xl font-bold text-blue-700">
+                            {tc.totalAssigned}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Total Assigned
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">Conversion Rate</div>
+                        <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+                          <div className="text-xl font-bold text-green-700">
+                            {tc.converted}
+                          </div>
+                          <div className="text-xs text-gray-600">Converted</div>
+                        </div>
+                        <div className="bg-yellow-50 rounded-lg p-3 text-center border border-yellow-200">
+                          <div className="text-xl font-bold text-yellow-700">
+                            {tc.contacted}
+                          </div>
+                          <div className="text-xs text-gray-600">Contacted</div>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-3 mb-3">
-                      <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-200">
-                        <div className="text-xl font-bold text-blue-700">
-                          {tc.totalAssigned}
+                      {/* Additional Stats */}
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs bg-white bg-opacity-60 rounded-lg p-3">
+                        <div>
+                          <span className="font-bold text-purple-600">
+                            {tc.qualified}
+                          </span>
+                          <div className="text-gray-600">Qualified</div>
                         </div>
-                        <div className="text-xs text-gray-600">Total Assigned</div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
-                        <div className="text-xl font-bold text-green-700">
-                          {tc.converted}
+                        <div>
+                          <span className="font-bold text-blue-600">
+                            {tc.new}
+                          </span>
+                          <div className="text-gray-600">New</div>
                         </div>
-                        <div className="text-xs text-gray-600">Converted</div>
-                      </div>
-                      <div className="bg-yellow-50 rounded-lg p-3 text-center border border-yellow-200">
-                        <div className="text-xl font-bold text-yellow-700">
-                          {tc.contacted}
+                        <div>
+                          <span className="font-bold text-red-600">
+                            {tc.dropped}
+                          </span>
+                          <div className="text-gray-600">Dropped</div>
                         </div>
-                        <div className="text-xs text-gray-600">Contacted</div>
                       </div>
                     </div>
-
-                    {/* Additional Stats */}
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs bg-white bg-opacity-60 rounded-lg p-3">
-                      <div>
-                        <span className="font-bold text-purple-600">{tc.qualified}</span>
-                        <div className="text-gray-600">Qualified</div>
-                      </div>
-                      <div>
-                        <span className="font-bold text-blue-600">{tc.new}</span>
-                        <div className="text-gray-600">New</div>
-                      </div>
-                      <div>
-                        <span className="font-bold text-red-600">{tc.dropped}</span>
-                        <div className="text-gray-600">Dropped</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </>
