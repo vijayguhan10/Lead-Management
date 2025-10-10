@@ -66,4 +66,15 @@ export class TelecallerClient {
       return { success: false, error: 'Telecaller service unavailable' };
     }
   }
+
+  async findTelecallerByUserId(userId: string) {
+    try {
+      return await this.client
+        .send({ cmd: 'find_telecaller_by_user_id' }, userId)
+        .toPromise();
+    } catch (error) {
+      console.error('Error finding telecaller by userId:', error.message);
+      return { success: false, error: 'Telecaller service unavailable' };
+    }
+  }
 }
