@@ -45,9 +45,9 @@ function Auth() {
       localStorage.setItem("user", JSON.stringify(decoded));
 
       toast.success("Login successful!");
-      // Redirect telecallers to their view page, admins to admin dashboard
+      // Redirect telecallers to their dashboard, admins to admin dashboard
       if (role === "telecaller") {
-        navigate("/viewtelecaller");
+        navigate("/telecaller-dashboard");
       } else {
         navigate("/admin-dashboard");
       }

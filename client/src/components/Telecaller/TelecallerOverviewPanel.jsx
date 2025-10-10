@@ -93,7 +93,7 @@ export default function TelecallerOverviewPanel() {
   // Helper: Get top 3 telecallers by completedCallsToday
   const topTelecallers = React.useMemo(() => {
     // If the endpoint already returns top-3 (when viewing as a telecaller), use the returned list directly.
-    if (endpoint && endpoint.includes('/top3')) {
+    if (endpoint && endpoint.includes("/top3")) {
       return telecallers.slice(0, 3);
     }
 
@@ -237,34 +237,36 @@ export default function TelecallerOverviewPanel() {
                     <div className="flex flex-col items-center gap-1 mt-2">
                       <span className="text-base font-semibold text-gray-700">
                         <span className="text-[#FFD700] font-bold">
-                          {tc.performanceMetrics?.completedCallsToday ?? (tc.assignedLeads?.length || 0)}
+                          {tc.performanceMetrics?.completedCallsToday ??
+                            (tc.assignedLeads?.length || 0)}
                         </span>{" "}
                         Calls
                       </span>
 
                       <span className="text-xs text-gray-500">
-                        Daily Call Target: {" "}
+                        Daily Call Target:{" "}
                         <span className="font-bold">
-                          {tc.performanceMetrics?.dailyCallTarget ?? 'N/A'}
+                          {tc.performanceMetrics?.dailyCallTarget ?? "N/A"}
                         </span>
                       </span>
 
                       <span className="text-xs text-gray-500">
-                        Monthly Leads Goal: {" "}
+                        Monthly Leads Goal:{" "}
                         <span className="font-bold">
-                          {tc.performanceMetrics?.monthlyLeadGoal ?? 'N/A'}
+                          {tc.performanceMetrics?.monthlyLeadGoal ?? "N/A"}
                         </span>
                       </span>
 
                       <span className="text-xs text-gray-500">
-                        Leads Today: {" "}
+                        Leads Today:{" "}
                         <span className="font-bold">
-                          {tc.performanceMetrics?.leadsAssignedToday ?? (tc.assignedLeads?.length || 0)}
+                          {tc.performanceMetrics?.leadsAssignedToday ??
+                            (tc.assignedLeads?.length || 0)}
                         </span>
                       </span>
 
                       <span className="text-xs text-gray-500 mt-1">
-                        Total Assigned Leads: {" "}
+                        Total Assigned Leads:{" "}
                         <span className="font-bold">
                           {tc.assignedLeads?.length || 0}
                         </span>
@@ -277,8 +279,8 @@ export default function TelecallerOverviewPanel() {
           </div>
         )}
 
-  {/* Telecallers Table (hide for telecaller role since they only need Top 3) */}
-  {role !== "telecaller" && telecallers.length > 0 && (
+        {/* Telecallers Table (hide for telecaller role since they only need Top 3) */}
+        {role !== "telecaller" && telecallers.length > 0 && (
           <div className="rounded-xl shadow border border-gray-200 bg-white max-h-[500px] overflow-auto">
             <table className="min-w-full text-sm border-separate border-spacing-0 table-fixed">
               <thead>
@@ -317,7 +319,9 @@ export default function TelecallerOverviewPanel() {
                     className={`transition cursor-pointer hover:bg-[#f6f8fb] ${
                       idx % 2 ? "bg-white" : "bg-gray-50"
                     }`}
-                    onClick={() => navigate(`/viewtelecaller`)}
+                    onClick={() =>
+                      navigate(`/admin/telecaller/${tc.userId || tc._id}`)
+                    }
                   >
                     <td className="py-3 px-4 border-b border-gray-200 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -404,7 +408,7 @@ export default function TelecallerOverviewPanel() {
                         className="bg-gradient-to-r from-[#FFD700] via-[#FFB300] to-[#FF8C00] text-white px-4 py-2 rounded shadow flex items-center gap-2 text-xs font-bold hover:scale-105 transition"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/viewtelecaller`);
+                          navigate(`/admin/telecaller/${tc.userId || tc._id}`);
                         }}
                       >
                         <FaChartLine /> View Profile

@@ -2,7 +2,6 @@ import "./index.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import SideBar from "./components/layout/Sidebar";
-import Header from "./components/layout/Header";
 import InitialRouter from "./Router/InitialRouter";
 import { useLocation } from "react-router-dom";
 import React, { useState, useEffect } from "react";
@@ -12,7 +11,7 @@ function App() {
   const location = useLocation();
   const [runTour, setRunTour] = useState(false);
 
-  // Paths where sidebar/header should be hidden
+  // Paths where sidebar should be hidden
   const hideSidebarPaths = ["/", "/login", "/auth", "/signup"];
   const shouldHideSidebar = hideSidebarPaths.includes(location.pathname);
 
@@ -93,7 +92,6 @@ function App() {
       {!shouldHideSidebar && <SideBar setRunTour={setRunTour} />}
 
       <div className={shouldHideSidebar ? "w-full" : "xl:ml-64 w-full"}>
-        {!shouldHideSidebar && <Header />}
         <InitialRouter />
       </div>
 

@@ -6,6 +6,7 @@ import {
   FaChartLine,
   FaSpinner,
   FaExclamationTriangle,
+  FaSync,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import MetricCard from "./Dashboard/MetricCard";
@@ -52,7 +53,9 @@ const Dashboard = () => {
       <div className="p-8 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <FaSpinner className="animate-spin text-6xl text-[#7C3AED] mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading dashboard analytics...</p>
+          <p className="text-gray-600 text-lg">
+            Loading dashboard analytics...
+          </p>
         </div>
       </div>
     );
@@ -84,20 +87,16 @@ const Dashboard = () => {
     );
   }
 
-  const { overview, monthlyConversions, telecallerPerformance, sourceConversions } =
-    dashboardData;
+  const {
+    overview,
+    monthlyConversions,
+    telecallerPerformance,
+    sourceConversions,
+  } = dashboardData;
 
   return (
     <div className="p-4 md:p-8 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 font-poppins">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Dashboard Analytics
-        </h1>
-        <p className="text-gray-600">
-          Comprehensive insights into your lead management performance
-        </p>
-      </div>
+      {/* Top refresh removed per UX request */}
 
       {/* Top Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
