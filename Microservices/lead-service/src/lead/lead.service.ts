@@ -33,6 +33,19 @@ export class LeadService {
     return createdLead.save();
   }
 
+  // Find leads with upcoming follow-ups within a time range
+  async findLeadsWithUpcomingFollowUps(startTime: Date, endTime: Date): Promise<Lead[]> {
+    return this.leadModel
+      .find({
+        nextFollowUp: {
+          $gte: startTime,
+          $lte: endTime,
+        },
+        assignedTo: { $exists: true, $ne: null },
+      })
+      .exec();
+  }
+
   async findAllOrganizationLeads(query: any = {}, param: any = {}): Promise<Lead[]> {
     const { status, priority, assignedTo, source, createdAt, tags } = query;
     const organizationId = param.organizationId;

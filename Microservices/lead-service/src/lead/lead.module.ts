@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LeadController } from './lead.controller';
+import { LeadInternalController } from './lead-internal.controller';
 import { LeadService } from './lead.service';
 import { AuthClient } from '../auth/auth.client';
 import { RolesGuard , AdminRoleGuard } from '../auth/roles.guard';
@@ -11,7 +12,7 @@ import { TelecallerClient } from '../telecaller/telecaller.client'; // Adjust pa
   imports: [
     MongooseModule.forFeature([{ name: Lead.name, schema: LeadSchema }]),
   ],
-  controllers: [LeadController],
+  controllers: [LeadController, LeadInternalController],
   providers: [
     LeadService,
     AuthClient,
