@@ -33,6 +33,19 @@ export class LeadService {
     return createdLead.save();
   }
 
+  // Find leads with upcoming follow-ups within a time range
+  async findLeadsWithUpcomingFollowUps(startTime: Date, endTime: Date): Promise<Lead[]> {
+    return this.leadModel
+      .find({
+        nextFollowUp: {
+          $gte: startTime,
+          $lte: endTime,
+        },
+        assignedTo: { $exists: true, $ne: null },
+      })
+      .exec();
+  }
+
   async findAllOrganizationLeads(query: any = {}, param: any = {}): Promise<Lead[]> {
     const { status, priority, assignedTo, source, createdAt, tags } = query;
     const organizationId = param.organizationId;
@@ -74,8 +87,39 @@ export class LeadService {
 
   // Update a lead
   async update(id: string, leadDto: Partial<LeadDto>): Promise<Lead> {
+    // Get the current lead to check for status changes
+    const currentLead = await this.leadModel.findById(id).exec();
+    if (!currentLead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+
+    // Automatically set timestamps based on status changes
+    const updateData: any = { ...leadDto };
+    
+    // Track status changes with appropriate timestamps
+    if (leadDto.status && currentLead.status !== leadDto.status) {
+      const now = new Date();
+      
+      switch (leadDto.status) {
+        case LeadStatus.Contacted:
+          updateData.contactedAt = now;
+          updateData.lastContacted = now;
+          break;
+        case LeadStatus.Qualified:
+          updateData.qualifiedAt = now;
+          break;
+        case LeadStatus.Converted:
+          updateData.convertedAt = now;
+          updateData.lastContacted = now;
+          break;
+        case LeadStatus.Dropped:
+          updateData.droppedAt = now;
+          break;
+      }
+    }
+
     const updatedLead = await this.leadModel
-      .findByIdAndUpdate(id, leadDto, { new: true })
+      .findByIdAndUpdate(id, updateData, { new: true })
       .exec();
 
     if (!updatedLead) {
@@ -101,11 +145,25 @@ export class LeadService {
       throw new NotFoundException(`Lead with ID ${id} not found`);
     }
 
+    const now = new Date();
     lead.status = status;
 
-    // If converting lead, set conversion date
-    if (status === LeadStatus.Converted) {
-      lead.lastContacted = new Date();
+    // Set appropriate timestamp based on status
+    switch (status) {
+      case LeadStatus.Contacted:
+        lead.contactedAt = now;
+        lead.lastContacted = now;
+        break;
+      case LeadStatus.Qualified:
+        lead.qualifiedAt = now;
+        break;
+      case LeadStatus.Converted:
+        lead.convertedAt = now;
+        lead.lastContacted = now;
+        break;
+      case LeadStatus.Dropped:
+        lead.droppedAt = now;
+        break;
     }
 
     return lead.save();
@@ -130,6 +188,7 @@ export class LeadService {
 
     // Assign the lead in both services
     lead.assignedTo = telecallerId;
+    lead.assignedAt = new Date();
 
     // Update the telecaller's assigned leads via the microservice
     const assignResult = await this.telecallerClient.assignLead(
@@ -471,5 +530,390 @@ export class LeadService {
     }
 
     return result;
+  }
+
+  // Dashboard analytics: comprehensive metrics for admin dashboard
+  async getDashboardAnalytics(organizationId: string): Promise<any> {
+    const filter: any = {};
+    if (organizationId) filter.organizationId = organizationId;
+
+    const allLeads = await this.leadModel.find(filter).lean().exec();
+
+    // Basic metrics
+    const totalLeads = allLeads.length;
+    const assignedLeads = allLeads.filter((l) => l.assignedTo).length;
+    const convertedLeads = allLeads.filter((l) => l.status === LeadStatus.Converted).length;
+    const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(2) : '0.00';
+
+    // Monthly conversion and assignment data for the past 12 months
+    const now = new Date();
+    const monthlyConversions: Array<{ month: string; converted: number; assigned: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const converted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Converted) return false;
+        // Use convertedAt timestamp - this is set when status changes to Converted
+        if (!l.convertedAt) return false;
+        const convDate = new Date(l.convertedAt);
+        return convDate >= targetMonth && convDate < nextMonth;
+      }).length;
+
+      const assigned = allLeads.filter((l) => {
+        if (!l.assignedTo) return false;
+        // Use assignedAt timestamp - this is set when lead is assigned
+        if (!l.assignedAt) return false;
+        const assignDate = new Date(l.assignedAt);
+        return assignDate >= targetMonth && assignDate < nextMonth;
+      }).length;
+
+      monthlyConversions.push({
+        month: targetMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        converted,
+        assigned,
+      });
+    }
+
+    // Telecaller performance stats
+    const telecallerStats = {};
+    allLeads.forEach((lead) => {
+      if (!lead.assignedTo) return;
+      const tcId = String(lead.assignedTo);
+      if (!telecallerStats[tcId]) {
+        telecallerStats[tcId] = {
+          telecallerId: tcId,
+          totalAssigned: 0,
+          converted: 0,
+          contacted: 0,
+          qualified: 0,
+          new: 0,
+          dropped: 0,
+        };
+      }
+      telecallerStats[tcId].totalAssigned++;
+      if (lead.status === LeadStatus.Converted) telecallerStats[tcId].converted++;
+      if (lead.status === LeadStatus.Contacted) telecallerStats[tcId].contacted++;
+      if (lead.status === LeadStatus.Qualified) telecallerStats[tcId].qualified++;
+      if (lead.status === LeadStatus.New) telecallerStats[tcId].new++;
+      if (lead.status === LeadStatus.Dropped) telecallerStats[tcId].dropped++;
+    });
+
+    const telecallerPerformance = Object.values(telecallerStats).map((stat: any) => ({
+      ...stat,
+      conversionRate: stat.totalAssigned > 0 ? ((stat.converted / stat.totalAssigned) * 100).toFixed(2) : '0.00',
+    }));
+
+    // Source-based conversion analytics
+    const sourceStats = {};
+    allLeads.forEach((lead) => {
+      const source = lead.source || 'Unknown';
+      if (!sourceStats[source]) {
+        sourceStats[source] = {
+          source,
+          total: 0,
+          converted: 0,
+        };
+      }
+      sourceStats[source].total++;
+      if (lead.status === LeadStatus.Converted) {
+        sourceStats[source].converted++;
+      }
+    });
+
+    const sourceConversions = Object.values(sourceStats).map((stat: any) => ({
+      ...stat,
+      conversionRate: stat.total > 0 ? ((stat.converted / stat.total) * 100).toFixed(2) : '0.00',
+    })).sort((a: any, b: any) => b.converted - a.converted);
+
+    return {
+      overview: {
+        totalLeads,
+        assignedLeads,
+        convertedLeads,
+        conversionRate,
+        unassignedLeads: totalLeads - assignedLeads,
+      },
+      monthlyConversions,
+      telecallerPerformance,
+      sourceConversions,
+    };
+  }
+
+  // Telecaller-specific dashboard analytics
+  async getTelecallerDashboardAnalytics(telecallerId: string): Promise<any> {
+    console.log('\n========================================');
+    console.log('📊 TELECALLER DASHBOARD ANALYTICS START');
+    console.log('📊 Input telecallerId:', telecallerId);
+    console.log('========================================\n');
+    
+    // First, try to find telecaller by ID to get the actual telecaller document
+    // This allows us to handle both telecaller._id and userId from auth
+    let actualTelecallerId = telecallerId;
+    
+    try {
+      // Try to validate if this is a telecaller._id
+      console.log('🔍 Step 1: Trying to validate as telecaller._id...');
+      const telecallerResult = await this.telecallerClient.validateTelecaller(telecallerId);
+      console.log('✅ Validation result:', JSON.stringify(telecallerResult, null, 2));
+      
+      if (telecallerResult.isValid && telecallerResult.telecaller) {
+        // Use the telecaller's _id from the response
+        actualTelecallerId = telecallerResult.telecaller._id || telecallerResult.telecaller.id || telecallerId;
+        console.log('✅ Resolved telecaller._id:', actualTelecallerId);
+      } else {
+        console.log('⚠️  Validation failed, trying userId lookup...');
+        throw new Error('Not a valid telecaller._id');
+      }
+    } catch (error) {
+      // If validation fails, it might be a userId, try to find telecaller by userId
+      console.log('🔍 Step 2: Trying to find telecaller by userId...');
+      try {
+        const telecallerByUserIdResult = await this.telecallerClient.findTelecallerByUserId(telecallerId);
+        console.log('✅ UserId lookup result:', JSON.stringify(telecallerByUserIdResult, null, 2));
+        
+        if (telecallerByUserIdResult.success && telecallerByUserIdResult.telecaller && telecallerByUserIdResult.telecaller._id) {
+          actualTelecallerId = telecallerByUserIdResult.telecaller._id;
+          console.log('✅ Resolved from userId to telecaller._id:', actualTelecallerId);
+        }
+      } catch (userIdError) {
+        // If both fail, continue with original ID
+        console.error('❌ Could not resolve telecaller ID:', telecallerId);
+        console.error('❌ Error:', userIdError.message);
+      }
+    }
+
+    const filter: any = { assignedTo: actualTelecallerId };
+
+    console.log('\n📊 Final Query Details:');
+    console.log('📊 Original ID:', telecallerId);
+    console.log('📊 Resolved ID:', actualTelecallerId);
+    console.log('📊 Filter:', JSON.stringify(filter));
+
+    const allLeads = await this.leadModel.find(filter).lean().exec();
+
+    console.log('📊 Found Leads:', allLeads.length);
+    if (allLeads.length > 0) {
+      console.log('📊 Sample Lead assignedTo:', allLeads[0].assignedTo);
+    }
+    console.log('========================================\n');
+
+    // Basic telecaller stats
+    const totalLeads = allLeads.length;
+    const convertedLeads = allLeads.filter((l) => l.status === LeadStatus.Converted).length;
+    const qualifiedLeads = allLeads.filter((l) => l.status === LeadStatus.Qualified).length;
+    const contactedLeads = allLeads.filter((l) => l.status === LeadStatus.Contacted).length;
+    const newLeads = allLeads.filter((l) => l.status === LeadStatus.New).length;
+    const droppedLeads = allLeads.filter((l) => l.status === LeadStatus.Dropped).length;
+    const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(2) : '0.00';
+
+    // Follow-up tracking
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const leadsWithFollowUp = allLeads.filter((l) => l.nextFollowUp);
+    
+    const overdueFollowUps = leadsWithFollowUp.filter((l) => {
+      const followUpDate = new Date(l.nextFollowUp!);
+      return followUpDate < today;
+    });
+
+    const todaysFollowUps = leadsWithFollowUp.filter((l) => {
+      const followUpDate = new Date(l.nextFollowUp!);
+      return followUpDate >= today && followUpDate < tomorrow;
+    });
+
+    const pendingFollowUps = leadsWithFollowUp.filter((l) => {
+      const followUpDate = new Date(l.nextFollowUp!);
+      return followUpDate >= tomorrow;
+    });
+
+    // Lead status distribution for chart
+    const statusDistribution = [
+      { status: 'New', count: newLeads },
+      { status: 'Contacted', count: contactedLeads },
+      { status: 'Qualified', count: qualifiedLeads },
+      { status: 'Converted', count: convertedLeads },
+      { status: 'Dropped', count: droppedLeads },
+    ];
+
+    // Monthly conversion trends (last 12 months)
+    const monthlyTrends: Array<{ month: string; converted: number; contacted: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const converted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Converted) return false;
+        // Use convertedAt timestamp - this is set when status changes to Converted
+        if (!l.convertedAt) return false;
+        const convDate = new Date(l.convertedAt);
+        return convDate >= targetMonth && convDate < nextMonth;
+      }).length;
+
+      const contacted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Contacted) return false;
+        // Use contactedAt timestamp - this is set when status changes to Contacted
+        if (!l.contactedAt) return false;
+        const contactDate = new Date(l.contactedAt);
+        return contactDate >= targetMonth && contactDate < nextMonth;
+      }).length;
+
+      monthlyTrends.push({
+        month: targetMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        converted,
+        contacted,
+      });
+    }
+
+    // Weekly conversion trends (last 8 weeks)
+    const weeklyTrends: Array<{ week: string; converted: number; contacted: number }> = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (i * 7));
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      const converted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Converted) return false;
+        // Use convertedAt timestamp - this is set when status changes to Converted
+        if (!l.convertedAt) return false;
+        const convDate = new Date(l.convertedAt);
+        return convDate >= weekStart && convDate < weekEnd;
+      }).length;
+
+      const contacted = allLeads.filter((l) => {
+        if (l.status !== LeadStatus.Contacted) return false;
+        // Use contactedAt timestamp - this is set when status changes to Contacted
+        if (!l.contactedAt) return false;
+        const contactDate = new Date(l.contactedAt);
+        return contactDate >= weekStart && contactDate < weekEnd;
+      }).length;
+
+      const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      weeklyTrends.push({
+        week: weekLabel,
+        converted,
+        contacted,
+      });
+    }
+
+    // Next 2 upcoming follow-ups (earliest dates, excluding overdue and today)
+    const upcomingFollowUps = pendingFollowUps
+      .sort((a, b) => new Date(a.nextFollowUp!).getTime() - new Date(b.nextFollowUp!).getTime())
+      .slice(0, 2)
+      .map((lead) => ({
+        leadId: lead._id,
+        name: lead.name,
+        phone: lead.phone,
+        company: lead.company,
+        nextFollowUp: lead.nextFollowUp,
+        status: lead.status,
+        priority: lead.priority,
+      }));
+
+    return {
+      stats: {
+        totalLeads,
+        convertedLeads,
+        qualifiedLeads,
+        contactedLeads,
+        newLeads,
+        droppedLeads,
+        conversionRate,
+      },
+      followUps: {
+        overdue: overdueFollowUps.length,
+        today: todaysFollowUps.length,
+        pending: pendingFollowUps.length,
+        overdueLeads: overdueFollowUps.map((l) => ({
+          leadId: l._id,
+          name: l.name,
+          phone: l.phone,
+          nextFollowUp: l.nextFollowUp,
+          status: l.status,
+        })),
+        todaysLeads: todaysFollowUps.map((l) => ({
+          leadId: l._id,
+          name: l.name,
+          phone: l.phone,
+          nextFollowUp: l.nextFollowUp,
+          status: l.status,
+        })),
+        pendingLeads: pendingFollowUps.map((l) => ({
+          leadId: l._id,
+          name: l.name,
+          phone: l.phone,
+          company: l.company,
+          nextFollowUp: l.nextFollowUp,
+          status: l.status,
+          priority: l.priority,
+        })),
+      },
+      statusDistribution,
+      trends: {
+        monthly: monthlyTrends,
+        weekly: weeklyTrends,
+      },
+      upcomingFollowUps,
+    };
+  }
+
+  // Export telecaller dashboard data to Excel
+  async exportTelecallerDashboard(telecallerId: string): Promise<Buffer> {
+    const data = await this.getTelecallerDashboardAnalytics(telecallerId);
+    const XLSX = require('xlsx');
+
+    // Create sheets
+    const statsSheet = XLSX.utils.json_to_sheet([data.stats]);
+    
+    const followUpsSheet = XLSX.utils.json_to_sheet([
+      { 
+        Overdue: data.followUps.overdue,
+        Today: data.followUps.today,
+        Pending: data.followUps.pending,
+      },
+    ]);
+
+    const statusDistributionSheet = XLSX.utils.json_to_sheet(data.statusDistribution);
+    const monthlyTrendsSheet = XLSX.utils.json_to_sheet(data.trends.monthly);
+    const weeklyTrendsSheet = XLSX.utils.json_to_sheet(data.trends.weekly);
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, statsSheet, 'Stats');
+    XLSX.utils.book_append_sheet(wb, followUpsSheet, 'FollowUps');
+    XLSX.utils.book_append_sheet(wb, statusDistributionSheet, 'Status Distribution');
+    XLSX.utils.book_append_sheet(wb, monthlyTrendsSheet, 'Monthly Trends');
+    XLSX.utils.book_append_sheet(wb, weeklyTrendsSheet, 'Weekly Trends');
+
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return buffer;
+  }
+
+  // Export admin dashboard data to Excel
+  async exportAdminDashboard(organizationId: string): Promise<Buffer> {
+    const data = await this.getDashboardAnalytics(organizationId);
+    const XLSX = require('xlsx');
+
+    // Create sheets
+    const overviewSheet = XLSX.utils.json_to_sheet([data.overview]);
+    const monthlyConversionsSheet = XLSX.utils.json_to_sheet(data.monthlyConversions);
+    const telecallerPerformanceSheet = XLSX.utils.json_to_sheet(data.telecallerPerformance);
+    const sourceConversionsSheet = XLSX.utils.json_to_sheet(data.sourceConversions);
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, overviewSheet, 'Overview');
+    XLSX.utils.book_append_sheet(wb, monthlyConversionsSheet, 'Monthly Data');
+    XLSX.utils.book_append_sheet(wb, telecallerPerformanceSheet, 'Telecaller Performance');
+    XLSX.utils.book_append_sheet(wb, sourceConversionsSheet, 'Source Conversions');
+
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    return buffer;
   }
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Auth from "../components/Auth/Auth";
 import Dashboard from "../components/Admin/Dashboard";
+import TelecallerDashboard from "../components/Telecaller/Dashboard";
 
 import Lead from "../components/Lead/Lead";
 
@@ -22,6 +23,11 @@ const InitialRouter = () => {
 
         <Route path="/leads" element={<Lead />} />
         <Route path="/admin-dashboard" element={<Dashboard />} />
+        <Route
+          path="/admin/telecaller/:telecallerId"
+          element={<TelecallerDashboard />}
+        />
+        <Route path="/telecaller-dashboard" element={<TelecallerDashboard />} />
         <Route path="/call-logs" element={<CallLogs />} />
         <Route path="/telecaller" element={<TelecallerOverviewPanel />} />
         <Route path="/viewtelecaller" element={<IndividualTelecaller />} />

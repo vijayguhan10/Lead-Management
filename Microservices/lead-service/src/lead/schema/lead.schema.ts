@@ -94,6 +94,22 @@ export class Lead {
 
   @Prop()
   conversionScore?: number;
+
+  // Status change timestamps - track when lead moved to each status
+  @Prop()
+  assignedAt?: Date;
+
+  @Prop()
+  contactedAt?: Date;
+
+  @Prop()
+  qualifiedAt?: Date;
+
+  @Prop()
+  convertedAt?: Date;
+
+  @Prop()
+  droppedAt?: Date;
 }
 
 export const LeadSchema = SchemaFactory.createForClass(Lead);

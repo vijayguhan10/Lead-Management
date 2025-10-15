@@ -96,4 +96,20 @@ export class TelecallerMicroserviceController {
       return { success: false, error: error.message };
     }
   }
+
+  @MessagePattern({ cmd: 'find_telecaller_by_user_id' })
+  async findTelecallerByUserId(@Payload() userId: string) {
+    try {
+      const telecaller = await this.telecallerService.findByUserId(userId);
+      return {
+        success: true,
+        telecaller,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

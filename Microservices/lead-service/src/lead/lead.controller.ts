@@ -32,6 +32,38 @@ export class LeadController {
     return this.leadService.findAllOrganizationLeads(query, param);
   }
 
+  // Dashboard analytics endpoint
+  @Get('dashboard/analytics/:organizationId')
+  async getDashboardAnalytics(@Param('organizationId') organizationId: string) {
+    return this.leadService.getDashboardAnalytics(organizationId);
+  }
+
+  // Telecaller dashboard analytics endpoint
+  @Get('telecaller/dashboard/:telecallerId')
+  async getTelecallerDashboardAnalytics(@Param('telecallerId') telecallerId: string) {
+    return this.leadService.getTelecallerDashboardAnalytics(telecallerId);
+  }
+
+  // Export telecaller dashboard data
+  @Get('telecaller/export/:telecallerId')
+  async exportTelecallerDashboard(@Param('telecallerId') telecallerId: string, @Res() res: any) {
+    const buffer = await this.leadService.exportTelecallerDashboard(telecallerId);
+    const filename = `telecaller_dashboard_${telecallerId}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(HttpStatus.OK).send(buffer);
+  }
+
+  // Export admin dashboard data
+  @Get('dashboard/export/:organizationId')
+  async exportAdminDashboard(@Param('organizationId') organizationId: string, @Res() res: any) {
+    const buffer = await this.leadService.exportAdminDashboard(organizationId);
+    const filename = `admin_dashboard_${new Date().toISOString().slice(0,10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(HttpStatus.OK).send(buffer);
+  }
+
   // Export leads to XLSX.
   @Get('export')
   async exportLeads(@Query() query: any, @Res() res: any) {

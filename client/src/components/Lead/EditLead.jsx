@@ -174,10 +174,60 @@ export default function EditLead({
     }
     try {
       setSaving(true);
-      const res = await execute({ method, endpoint, data: payload });
-      toast.success("Lead updated successfully");
-      onSubmit && onSubmit(res || { ...data, ...payload });
-      onClose && onClose();
+      // For telecaller: first update notes/tags/etc, then update status if changed
+      if (role === "telecaller") {
+        const resNotes = await execute({ method, endpoint, data: payload });
+        // Collect changed fields (source, priority, status) and send a single update if needed
+        try {
+          const changes = {};
+          const resolvedSource =
+            form.source === "Other" ? form.sourceOther || "" : form.source;
+          if (
+            resolvedSource &&
+            data?.source &&
+            String(resolvedSource) !== String(data.source)
+          ) {
+            changes.source = resolvedSource;
+          }
+          if (
+            form.priority &&
+            data?.priority &&
+            String(form.priority) !== String(data.priority)
+          ) {
+            changes.priority = form.priority;
+          }
+          if (
+            form.status &&
+            data?.status &&
+            String(form.status) !== String(data.status)
+          ) {
+            changes.status = form.status;
+          }
+
+          if (Object.keys(changes).length > 0) {
+            await execute({
+              method: "PUT",
+              endpoint: `/leads/${leadId}`,
+              data: changes,
+            });
+          }
+        } catch (updateErr) {
+          console.error(
+            "Failed to update lead meta for telecaller:",
+            updateErr
+          );
+        }
+
+        toast.success("Lead updated successfully");
+        onSubmit &&
+          onSubmit(resNotes || { ...data, ...payload, status: form.status });
+        onClose && onClose();
+      } else {
+        const res = await execute({ method, endpoint, data: payload });
+        toast.success("Lead updated successfully");
+        onSubmit && onSubmit(res || { ...data, ...payload });
+        onClose && onClose();
+      }
     } catch (err) {
       toast.error(
         err?.message || err?.response?.data?.message || "Failed to update lead"
@@ -190,15 +240,21 @@ export default function EditLead({
   if (!form) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* Backdrop with blur effect */}
-        <div
+        {/* Accessible backdrop with blur effect */}
+        <button
+          type="button"
           className="absolute inset-0 transition-opacity"
+          onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") onClose && onClose();
+          }}
+          aria-label="Close modal"
           style={{
             background: "rgba(255, 255, 255, 0.1)",
             backdropFilter: "blur(10px) brightness(0.8)",
             WebkitBackdropFilter: "blur(10px) brightness(0.8)",
           }}
-        ></div>
+        />
         <div className="bg-white rounded-xl p-8">
           {loading ? "Loading..." : "No data"}
         </div>
@@ -206,18 +262,24 @@ export default function EditLead({
     );
   }
 
+  // Main modal (form is available)
   return (
-    <div className="fixed inset-0 z-50 flex justify-center items-center">
-      {/* Backdrop with blur effect */}
-      <div
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Accessible backdrop for the modal */}
+      <button
+        type="button"
         className="absolute inset-0 transition-opacity"
         onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "Escape") onClose && onClose();
+        }}
+        aria-label="Close modal"
         style={{
           background: "rgba(255, 255, 255, 0.1)",
           backdropFilter: "blur(10px) brightness(0.8)",
           WebkitBackdropFilter: "blur(10px) brightness(0.8)",
         }}
-      ></div>
+      />
       <div
         className="bg-white rounded-3xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 py-0 px-0 relative flex flex-col"
         style={{ maxHeight: "90vh" }}
@@ -384,13 +446,36 @@ export default function EditLead({
                       >
                         Source
                       </label>
-                      <input
+                      <select
                         id="source_input"
                         name="source"
                         value={form.source}
                         onChange={handleChange}
                         className="input"
-                      />
+                      >
+                        <option value="">Select source</option>
+                        <option value="Social Media">Social Media</option>
+                        <option value="Paper Ads">Paper Ads</option>
+                        <option value="TV Ads">TV Ads</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Website">Website</option>
+                        <option value="Event">Event</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      {form.source === "Other" && (
+                        <input
+                          name="sourceOther"
+                          value={form.sourceOther || ""}
+                          onChange={(e) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              sourceOther: e.target.value,
+                            }))
+                          }
+                          placeholder="Please specify source"
+                          className="input mt-2"
+                        />
+                      )}
                     </div>
                     <div>
                       <label
@@ -576,39 +661,141 @@ export default function EditLead({
                   </div>
                 </div>
               ) : (
-                // Telecaller view: compact dates panel so telecallers can schedule follow-ups
-                <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
-                  <h4 className="text-md font-bold text-[#222] mb-2">Dates</h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <label className="font-semibold text-[#222] block">
-                        Last Contacted
-                      </label>
-                      <input
-                        id="lastContacted_input"
-                        type="date"
-                        name="lastContacted"
-                        value={form.lastContacted || ""}
-                        onChange={handleChange}
-                        className="input"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-[#222] block">
-                        Next Follow Up
-                      </label>
-                      <input
-                        id="nextFollowUp_input"
-                        type="datetime-local"
-                        name="nextFollowUp"
-                        value={form.nextFollowUp || ""}
-                        onChange={handleChange}
-                        className="input"
-                        aria-label="Next follow up datetime"
-                      />
+                // Telecaller view: show Lead Meta (source, priority, status, assigned) and compact dates
+                <>
+                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
+                    <h4 className="text-md font-bold text-[#222] mb-2">
+                      Lead Meta
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label
+                          htmlFor="source_select_telecaller"
+                          className="font-semibold text-[#222] block"
+                        >
+                          Source
+                        </label>
+                        <select
+                          id="source_select_telecaller"
+                          name="source"
+                          value={form.source}
+                          onChange={handleChange}
+                          className="input"
+                        >
+                          <option value="">Select source</option>
+                          <option value="Social Media">Social Media</option>
+                          <option value="Paper Ads">Paper Ads</option>
+                          <option value="TV Ads">TV Ads</option>
+                          <option value="Referral">Referral</option>
+                          <option value="Website">Website</option>
+                          <option value="Event">Event</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {form.source === "Other" && (
+                          <input
+                            name="sourceOther"
+                            value={form.sourceOther || ""}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                sourceOther: e.target.value,
+                              }))
+                            }
+                            placeholder="Please specify source"
+                            className="input mt-2"
+                          />
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="priority_select_telecaller"
+                          className="font-semibold text-[#222] block"
+                        >
+                          Priority
+                        </label>
+                        <select
+                          id="priority_select_telecaller"
+                          name="priority"
+                          value={form.priority}
+                          onChange={handleChange}
+                          className="input"
+                        >
+                          {LeadPriority.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="status_select_telecaller"
+                          className="font-semibold text-[#222] block"
+                        >
+                          Status
+                        </label>
+                        <select
+                          id="status_select_telecaller"
+                          name="status"
+                          value={form.status}
+                          onChange={handleChange}
+                          className="input"
+                        >
+                          {LeadStatus.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Assigned To removed for telecaller view per request */}
                     </div>
                   </div>
-                </div>
+
+                  <div className="bg-[#FFFDEB] rounded-xl border border-[#FFD700] shadow p-4 mb-2 w-full max-w-sm">
+                    <h4 className="text-md font-bold text-[#222] mb-2">
+                      Dates
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label
+                          htmlFor="lastContacted_input"
+                          className="font-semibold text-[#222] block"
+                        >
+                          Last Contacted
+                        </label>
+                        <input
+                          id="lastContacted_input"
+                          type="date"
+                          name="lastContacted"
+                          value={form.lastContacted || ""}
+                          onChange={handleChange}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="nextFollowUp_input"
+                          className="font-semibold text-[#222] block"
+                        >
+                          Next Follow Up
+                        </label>
+                        <input
+                          id="nextFollowUp_input"
+                          type="datetime-local"
+                          name="nextFollowUp"
+                          value={form.nextFollowUp || ""}
+                          onChange={handleChange}
+                          className="input"
+                          aria-label="Next follow up datetime"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </form>
