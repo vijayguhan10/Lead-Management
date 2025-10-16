@@ -11,6 +11,12 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const request = context.switchToHttp().getRequest();
 
     const authHeader = request.headers.authorization;

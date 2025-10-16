@@ -12,6 +12,7 @@ import {
   Res,
   HttpStatus,
 } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { LeadService } from './lead.service';
 import { LeadDto } from './dto/lead.dto';
 import { Lead, LeadStatus } from './schema/lead.schema';
@@ -188,5 +189,61 @@ export class LeadController {
     @Body('lastContacted') lastContacted?: Date | string,
   ): Promise<Lead> {
     return this.leadService.updateNotesTagsInterested(id, notes, tags, interestedIn, nextFollowUp, lastContacted);
+  }
+
+  // ============================================================
+  // TCP Microservice Message Patterns (for inter-service communication)
+  // ============================================================
+
+  /**
+   * Get leads with upcoming follow-ups within a time window
+   * Used by media-service for email notifications
+   */
+  @MessagePattern({ cmd: 'get_upcoming_followups' })
+  async getUpcomingFollowups(payload: { startTime: string; endTime: string }): Promise<Lead[]> {
+    return this.leadService.findLeadsWithUpcomingFollowUps(
+      new Date(payload.startTime),
+      new Date(payload.endTime)
+    );
+  }
+
+  /**
+   * Get a single lead by ID via TCP
+   */
+  @MessagePattern({ cmd: 'get_lead_by_id' })
+  async getLeadByIdTcp(leadId: string): Promise<Lead> {
+    return this.leadService.findById(leadId);
+  }
+
+  /**
+   * Get all leads for a specific organization via TCP
+   */
+  @MessagePattern({ cmd: 'get_organization_leads' })
+  async getOrganizationLeadsTcp(organizationId: string): Promise<Lead[]> {
+    return this.leadService.findAllOrganizationLeads({}, { organizationId });
+  }
+
+  /**
+   * Get leads assigned to a specific telecaller via TCP
+   */
+  @MessagePattern({ cmd: 'get_telecaller_leads' })
+  async getTelecallerLeadsTcp(telecallerId: string): Promise<Lead[]> {
+    return this.leadService.findAllOrganizationLeads({ assignedTo: telecallerId }, {});
+  }
+
+  /**
+   * Update lead's last contacted time via TCP
+   */
+  @MessagePattern({ cmd: 'update_lead_last_contacted' })
+  async updateLeadLastContactedTcp(payload: { leadId: string; lastContacted: Date }): Promise<Lead> {
+    return this.leadService.update(payload.leadId, { lastContacted: payload.lastContacted });
+  }
+
+  /**
+   * Health check via TCP
+   */
+  @MessagePattern({ cmd: 'health_check' })
+  async healthCheckTcp(): Promise<{ status: string }> {
+    return { status: 'ok' };
   }
 }

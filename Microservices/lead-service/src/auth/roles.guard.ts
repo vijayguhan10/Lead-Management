@@ -11,6 +11,12 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const request = context.switchToHttp().getRequest();
     const token = request.headers['authorization']?.replace('Bearer ', '');
 

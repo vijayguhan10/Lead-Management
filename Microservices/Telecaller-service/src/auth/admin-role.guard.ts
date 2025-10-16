@@ -11,6 +11,12 @@ export class AdminRoleGuard implements CanActivate {
   constructor(private authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const { user } = context.switchToHttp().getRequest();
     if (!user || !user.userId)
       throw new ForbiddenException('User not authenticated');
