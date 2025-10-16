@@ -11,6 +11,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { TelecallerService } from './telecaller.service';
 import { TelecallerDto } from './DTO/telecaller.dto';
 import { Telecaller } from './schema/telecaller.schema';
@@ -95,6 +96,51 @@ export class TelecallerController {
   @UseGuards(JwtAuthGuard, TelecallerOrAdminGuard)
   async getByUserId(@Param('userId') userId: string): Promise<Telecaller> {
     return this.telecallerService.findByUserId(userId);
+  }
+
+  // ============================================================
+  // TCP Microservice Message Patterns (for inter-service communication)
+  // ============================================================
+
+  /**
+   * Get telecaller by ID via TCP
+   * Used by media-service for email notifications
+   */
+  @MessagePattern({ cmd: 'get_telecaller_by_id' })
+  async getTelecallerByIdTcp(telecallerId: string): Promise<Telecaller> {
+    return this.telecallerService.findById(telecallerId);
+  }
+
+  /**
+   * Get telecaller by user ID via TCP
+   */
+  @MessagePattern({ cmd: 'get_telecaller_by_user_id' })
+  async getTelecallerByUserIdTcp(userId: string): Promise<Telecaller> {
+    return this.telecallerService.findByUserId(userId);
+  }
+
+  /**
+   * Get all telecallers via TCP
+   */
+  @MessagePattern({ cmd: 'get_all_telecallers' })
+  async getAllTelecallersTcp(): Promise<Telecaller[]> {
+    return this.telecallerService.findAll();
+  }
+
+  /**
+   * Get telecallers by organization via TCP
+   */
+  @MessagePattern({ cmd: 'get_telecallers_by_organization' })
+  async getTelecallersByOrganizationTcp(organizationId: string): Promise<Telecaller[]> {
+    return this.telecallerService.findByOrganization(organizationId);
+  }
+
+  /**
+   * Health check via TCP
+   */
+  @MessagePattern({ cmd: 'health_check' })
+  async healthCheckTcp(): Promise<{ status: string }> {
+    return { status: 'ok' };
   }
 
   

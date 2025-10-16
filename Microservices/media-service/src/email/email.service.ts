@@ -16,10 +16,15 @@ export class EmailService {
     private readonly configService: ConfigService,
     private readonly emailTemplateService: EmailTemplateService,
   ) {
+    // Coerce types from environment (env vars are strings) to correct types
+    const rawPort = this.configService.get<string>('EMAIL_PORT', '587');
+    const rawSecure = this.configService.get<string>('EMAIL_SECURE', 'false');
+
     this.emailConfig = {
       host: this.configService.get<string>('EMAIL_HOST', 'smtp.gmail.com'),
-      port: this.configService.get<number>('EMAIL_PORT', 587),
-      secure: this.configService.get<boolean>('EMAIL_SECURE', false),
+      port: Number(rawPort) || 587,
+      // Treat any value equal to 'true' (case-insensitive) as true
+      secure: String(rawSecure).toLowerCase() === 'true',
       auth: {
         user: this.configService.get<string>('EMAIL_USER', ''),
         pass: this.configService.get<string>('EMAIL_PASSWORD', ''),
@@ -46,9 +51,14 @@ export class EmailService {
           user: this.emailConfig.auth.user,
           pass: this.emailConfig.auth.pass,
         },
+        requireTLS: !this.emailConfig.secure, // when using port 587, require STARTTLS
         tls: {
           rejectUnauthorized: false,
         },
+        // Helpful debugging
+        logger: true,
+        debug: true,
+        connectionTimeout: 30_000,
       });
 
       this.logger.log('Email transporter initialized successfully');
@@ -75,21 +85,32 @@ export class EmailService {
   /**
    * Send a generic email
    */
-  async sendEmail(options: EmailOptions): Promise<void> {
+  async sendEmail(options: EmailOptions): Promise<any> {
     try {
+      let cc: string | undefined = undefined;
+      if (options.cc) {
+        cc = Array.isArray(options.cc) ? options.cc.join(', ') : options.cc;
+      }
+
+      let bcc: string | undefined = undefined;
+      if (options.bcc) {
+        bcc = Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc;
+      }
+
       const mailOptions = {
-        from: `"${this.emailConfig.from.name}" <${this.emailConfig.from.address}>`,
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        cc: options.cc ? (Array.isArray(options.cc) ? options.cc.join(', ') : options.cc) : undefined,
-        bcc: options.bcc ? (Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc) : undefined,
-        attachments: options.attachments,
-      };
+          from: `"${this.emailConfig.from.name}" <${this.emailConfig.from.address}>`,
+          to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+          cc,
+          bcc,
+          attachments: options.attachments,
+        };
 
       const info = await this.transporter.sendMail(mailOptions);
       this.logger.log(`Email sent successfully to ${mailOptions.to}. Message ID: ${info.messageId}`);
+      return info;
     } catch (error) {
       this.logger.error(`Failed to send email to ${options.to}`, error.stack);
       throw error;
@@ -99,13 +120,13 @@ export class EmailService {
   /**
    * Send follow-up reminder email to telecaller
    */
-  async sendFollowUpReminder(dto: SendFollowUpEmailDto): Promise<void> {
+  async sendFollowUpReminder(dto: SendFollowUpEmailDto): Promise<any> {
     try {
       const subject = this.getFollowUpSubject(dto);
       const html = this.emailTemplateService.generateFollowUpReminderTemplate(dto);
       const text = this.emailTemplateService.generateFollowUpReminderText(dto);
 
-      await this.sendEmail({
+      const result = await this.sendEmail({
         to: dto.telecallerEmail,
         subject,
         html,
@@ -115,6 +136,8 @@ export class EmailService {
       this.logger.log(
         `Follow-up reminder sent to ${dto.telecallerEmail} for lead ${dto.leadName} (${dto.notificationType})`,
       );
+      
+      return result;
     } catch (error) {
       this.logger.error(
         `Failed to send follow-up reminder to ${dto.telecallerEmail} for lead ${dto.leadName}`,
@@ -170,7 +193,7 @@ export class EmailService {
   /**
    * Send test email to verify configuration
    */
-  async sendTestEmail(to: string): Promise<void> {
+  async sendTestEmail(to: string): Promise<any> {
     const subject = 'Test Email - Lead Management System';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -184,11 +207,27 @@ export class EmailService {
       </div>
     `;
 
-    await this.sendEmail({
+    return await this.sendEmail({
       to,
       subject,
       html,
       text: 'This is a test email from the Lead Management System.',
     });
   }
+
+  /**
+   * Get email configuration (sanitized - no passwords)
+   */
+  async getEmailConfig(): Promise<any> {
+    return {
+      host: this.emailConfig.host,
+      port: this.emailConfig.port,
+      secure: this.emailConfig.secure,
+      from: this.emailConfig.from.address,
+      fromName: this.emailConfig.from.name,
+      user: this.emailConfig.auth.user,
+      passwordConfigured: !!this.emailConfig.auth.pass,
+    };
+  }
 }
+

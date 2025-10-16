@@ -1,25 +1,29 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { AxiosResponse } from 'axios';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Lead } from './interfaces/lead.interface';
 
 @Injectable()
 export class LeadClient {
   private readonly logger = new Logger(LeadClient.name);
-  private readonly leadServiceUrl: string;
+  private client: ClientProxy;
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly httpService: HttpService,
   ) {
-    this.leadServiceUrl = this.configService.get<string>(
-      'LEAD_SERVICE_URL',
-      'http://localhost:3003',
-    );
+    const host = this.configService.get<string>('LEAD_SERVICE_HOST', 'localhost');
+    const port = Number(this.configService.get<string>('LEAD_SERVICE_TCP_PORT', '8003'));
 
-    this.logger.log(`Lead Client initialized with URL: ${this.leadServiceUrl}`);
+    this.logger.log(`Lead Client initialized with TCP: ${host}:${port}`);
+
+    this.client = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host,
+        port,
+      },
+    });
   }
 
   /**
@@ -27,15 +31,15 @@ export class LeadClient {
    */
   async getLeadById(leadId: string): Promise<Lead> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Lead>(`${this.leadServiceUrl}/leads/${leadId}`),
+      const lead = await firstValueFrom(
+        this.client.send<Lead>({ cmd: 'get_lead_by_id' }, leadId),
       );
-      return response.data;
+      return lead;
     } catch (error: any) {
       this.logger.error(`Failed to fetch lead ${leadId}`, error.message);
       throw new HttpException(
         `Failed to fetch lead: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -50,17 +54,15 @@ export class LeadClient {
     endTime: Date,
   ): Promise<Lead[]> {
     try {
-      // Use internal endpoint that doesn't require authentication
-      const response: AxiosResponse<Lead[]> = await firstValueFrom(
-        this.httpService.get<Lead[]>(`${this.leadServiceUrl}/internal/leads/upcoming-followups`, {
-          params: {
+      const leads = await firstValueFrom(
+        this.client.send<Lead[]>(
+          { cmd: 'get_upcoming_followups' },
+          {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
           },
-        }),
+        ),
       );
-
-      const leads = response.data;
 
       // Additional filtering on client side to ensure accuracy
       const filteredLeads = leads.filter((lead: Lead) => {
@@ -79,7 +81,7 @@ export class LeadClient {
       this.logger.error('Failed to fetch leads with upcoming follow-ups', error.message);
       throw new HttpException(
         `Failed to fetch leads with upcoming follow-ups: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -89,12 +91,13 @@ export class LeadClient {
    */
   async getOrganizationLeads(organizationId: string): Promise<Lead[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Lead[]>(
-          `${this.leadServiceUrl}/leads/getOrganizationLeads/${organizationId}`,
+      const leads = await firstValueFrom(
+        this.client.send<Lead[]>(
+          { cmd: 'get_organization_leads' },
+          organizationId,
         ),
       );
-      return response.data;
+      return leads;
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch leads for organization ${organizationId}`,
@@ -102,7 +105,7 @@ export class LeadClient {
       );
       throw new HttpException(
         `Failed to fetch organization leads: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -112,14 +115,13 @@ export class LeadClient {
    */
   async getLeadsByTelecaller(telecallerId: string): Promise<Lead[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Lead[]>(`${this.leadServiceUrl}/leads`, {
-          params: {
-            assignedTo: telecallerId,
-          },
-        }),
+      const leads = await firstValueFrom(
+        this.client.send<Lead[]>(
+          { cmd: 'get_telecaller_leads' },
+          telecallerId,
+        ),
       );
-      return response.data;
+      return leads;
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch leads for telecaller ${telecallerId}`,
@@ -127,7 +129,7 @@ export class LeadClient {
       );
       throw new HttpException(
         `Failed to fetch telecaller leads: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -138,9 +140,10 @@ export class LeadClient {
   async updateLeadLastContacted(leadId: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.httpService.put(`${this.leadServiceUrl}/leads/${leadId}`, {
-          lastContacted: new Date(),
-        }),
+        this.client.send<void>(
+          { cmd: 'update_lead_last_contacted' },
+          { leadId, lastContacted: new Date() },
+        ),
       );
       this.logger.log(`Updated last contacted time for lead ${leadId}`);
     } catch (error: any) {
@@ -157,10 +160,10 @@ export class LeadClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<{ status: string }>(`${this.leadServiceUrl}/health`),
+      const result = await firstValueFrom(
+        this.client.send<{ status: string }>({ cmd: 'health_check' }, {}),
       );
-      return response.status === 200;
+      return result.status === 'ok';
     } catch (error: any) {
       this.logger.error('Lead service health check failed', error.message);
       return false;

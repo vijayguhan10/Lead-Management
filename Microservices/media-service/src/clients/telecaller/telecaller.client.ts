@@ -1,26 +1,29 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Telecaller } from './interfaces/telecaller.interface';
 
 @Injectable()
 export class TelecallerClient {
   private readonly logger = new Logger(TelecallerClient.name);
-  private readonly telecallerServiceUrl: string;
+  private client: ClientProxy;
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly httpService: HttpService,
   ) {
-    this.telecallerServiceUrl = this.configService.get<string>(
-      'TELECALLER_SERVICE_URL',
-      'http://localhost:3006',
-    );
+    const host = this.configService.get<string>('TELECALLER_SERVICE_HOST', 'localhost');
+    const port = Number(this.configService.get<string>('TELECALLER_SERVICE_TCP_PORT', '8006'));
 
-    this.logger.log(
-      `Telecaller Client initialized with URL: ${this.telecallerServiceUrl}`,
-    );
+    this.logger.log(`Telecaller Client initialized with TCP: ${host}:${port}`);
+
+    this.client = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host,
+        port,
+      },
+    });
   }
 
   /**
@@ -28,10 +31,10 @@ export class TelecallerClient {
    */
   async getTelecallerById(telecallerId: string): Promise<Telecaller> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Telecaller>(`${this.telecallerServiceUrl}/telecallers/${telecallerId}`),
+      const telecaller = await firstValueFrom(
+        this.client.send<Telecaller>({ cmd: 'get_telecaller_by_id' }, telecallerId),
       );
-      return response.data;
+      return telecaller;
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch telecaller ${telecallerId}`,
@@ -39,7 +42,7 @@ export class TelecallerClient {
       );
       throw new HttpException(
         `Failed to fetch telecaller: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -49,10 +52,10 @@ export class TelecallerClient {
    */
   async getTelecallerByUserId(userId: string): Promise<Telecaller> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Telecaller>(`${this.telecallerServiceUrl}/telecallers/byUser/${userId}`),
+      const telecaller = await firstValueFrom(
+        this.client.send<Telecaller>({ cmd: 'get_telecaller_by_user_id' }, userId),
       );
-      return response.data;
+      return telecaller;
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch telecaller by userId ${userId}`,
@@ -60,7 +63,7 @@ export class TelecallerClient {
       );
       throw new HttpException(
         `Failed to fetch telecaller by userId: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -70,15 +73,15 @@ export class TelecallerClient {
    */
   async getAllTelecallers(): Promise<Telecaller[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Telecaller[]>(`${this.telecallerServiceUrl}/telecallers`),
+      const telecallers = await firstValueFrom(
+        this.client.send<Telecaller[]>({ cmd: 'get_all_telecallers' }, {}),
       );
-      return response.data;
+      return telecallers;
     } catch (error: any) {
       this.logger.error('Failed to fetch all telecallers', error.message);
       throw new HttpException(
         `Failed to fetch all telecallers: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -88,12 +91,13 @@ export class TelecallerClient {
    */
   async getTelecallersByOrganization(organizationId: string): Promise<Telecaller[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<Telecaller[]>(
-          `${this.telecallerServiceUrl}/telecallers/organization/${organizationId}`,
+      const telecallers = await firstValueFrom(
+        this.client.send<Telecaller[]>(
+          { cmd: 'get_telecallers_by_organization' },
+          organizationId,
         ),
       );
-      return response.data;
+      return telecallers;
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch telecallers for organization ${organizationId}`,
@@ -101,7 +105,7 @@ export class TelecallerClient {
       );
       throw new HttpException(
         `Failed to fetch organization telecallers: ${error.message}`,
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -137,10 +141,10 @@ export class TelecallerClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<{ status: string }>(`${this.telecallerServiceUrl}/health`),
+      const result = await firstValueFrom(
+        this.client.send<{ status: string }>({ cmd: 'health_check' }, {}),
       );
-      return response.status === 200;
+      return result.status === 'ok';
     } catch (error: any) {
       this.logger.error('Telecaller service health check failed', error.message);
       return false;

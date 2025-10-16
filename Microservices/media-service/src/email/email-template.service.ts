@@ -230,7 +230,8 @@ export class EmailTemplateService {
             </td>
           </tr>
 
-          <!-- Action Items -->
+          <!-- Action Items: show only when there are no lead notes -->
+          ${!dto.notes ? `
           <tr>
             <td style="padding: 0 30px 30px 30px;">
               <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; border-radius: 6px;">
@@ -247,6 +248,7 @@ export class EmailTemplateService {
               </div>
             </td>
           </tr>
+          ` : ''}
 
           <!-- Footer -->
           <tr>
@@ -303,15 +305,15 @@ export class EmailTemplateService {
     }
     
     if (dto.notes) {
-      text += `\nNotes:\n${dto.notes}\n`;
+      text += `\nNOTES:\n${dto.notes}\n`;
+    } else {
+      text += `\nRECOMMENDED ACTIONS:\n`;
+      text += `- Review the lead details and previous interaction history\n`;
+      text += `- Prepare discussion points based on their interests\n`;
+      text += `- Have relevant materials and information ready\n`;
+      text += `- Ensure you're in a quiet environment for the call\n`;
+      text += `- Update the lead status and notes after the follow-up\n`;
     }
-    
-    text += `\nRECOMMENDED ACTIONS:\n`;
-    text += `- Review the lead details and previous interaction history\n`;
-    text += `- Prepare discussion points based on their interests\n`;
-    text += `- Have relevant materials and information ready\n`;
-    text += `- Ensure you're in a quiet environment for the call\n`;
-    text += `- Update the lead status and notes after the follow-up\n`;
     
     text += `\n---\n`;
     text += `This is an automated reminder from the Lead Management System.\n`;

@@ -12,6 +12,12 @@ export class TelecallerRoleGuard implements CanActivate {
   constructor(private authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const { user } = context.switchToHttp().getRequest();
     if (!user || !user.userId)
       throw new ForbiddenException('User not authenticated');
@@ -29,6 +35,12 @@ export class AdminAccessRoleGuard implements CanActivate {
   constructor(private authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const { user } = context.switchToHttp().getRequest();
     if (!user || !user.userId)
       throw new ForbiddenException('User not authenticated');
@@ -45,6 +57,12 @@ export class TelecallerOrAdminGuard implements CanActivate {
   constructor(private readonly authClient: AuthClient) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip authentication for RPC/TCP microservice calls (internal service-to-service)
+    const contextType = context.getType();
+    if (contextType === 'rpc') {
+      return true; // Allow internal microservice calls without authentication
+    }
+
     const request = context.switchToHttp().getRequest();
     const allowedRoles = ['telecaller', 'admin'];
     let roleCheck;
